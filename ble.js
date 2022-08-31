@@ -1,57 +1,9 @@
 const module = (function () {
-    const test_pins = [
-        {
-            pin: 0,
-            function: "disabled"
-        },
-        {
-            pin: 1,
-            function: "output",
-            default_high: false,
-            invert: false
-        },
-        {
-            pin: 2,
-            function: "output",
-            default_high: true,
-            invert: false
-        },
-        {
-            pin: 3,
-            function: "output",
-            default_high: true,
-            invert: true
-        },
-        {
-            pin: 4,
-            function: "input",
-            pull: "disabled",
-            invert: false
-        },
-        {
-            pin: 5,
-            function: "input",
-            pull: "pullup",
-            invert: false
-        },
-        {
-            pin: 6,
-            function: "input",
-            pull: "pulldown",
-            invert: true
-        },
-        {
-            pin: 7,
-            function: "output",
-            pull: "pulldown",
-            invert: true
-        },
-    ]
-
     var pins = []
     var is_device_connected = false
     var characteristic_configuration = null
     var expects_disconnect = false
+    var gatt_server = null
 
     function init() {
         $('#button_bluetooth_connect').click(on_bluetooth_button_connect_click)
@@ -62,7 +14,15 @@ const module = (function () {
         window.encode_two_pins = encode_two_pins
     }
 
-    function on_bluetooth_button_connect_click() {
+    async function on_bluetooth_button_connect_click() {
+        if (is_device_connected) {
+            if (gatt_server == null) {
+                alert('GATT server not found. Please reload the page.')
+                return
+            }
+            await gatt_server.disconnect()
+            return
+        }
         navigator.bluetooth.requestDevice({
             filters: [
                 {
@@ -151,6 +111,7 @@ const module = (function () {
 
         device.addEventListener('gattserverdisconnected', () => {
             is_device_connected = false
+            gatt_server = null
             update_device_information()
             characteristic_configuration = null
 
@@ -227,10 +188,13 @@ const module = (function () {
     }
 
     function update_device_information() {
+        const connect_button = $('#button_bluetooth_connect')
         if (is_device_connected) {
             set_device_status('connected')
+            connect_button.text('Disconnect')
         } else {
             set_device_status('not connected')
+            connect_button.text('Connect to device')
         }
 
         const send_button = $('#button_send_configuration')
@@ -400,6 +364,7 @@ const module = (function () {
 
     async function on_bluetooth_gatt_connected(gatt) {
         is_device_connected = gatt.connected
+        gatt_server = gatt
         update_device_information()
 
         var service = null
