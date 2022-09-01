@@ -17,7 +17,16 @@ const module = (function () {
     ]
     var input_pins = []
 
-    var sequence_digital_steps = []
+    var sequence_digital_steps = [
+        {
+            states: [false, true, false, true, false],
+            delay: 0
+        },
+        {
+            states: [true, false, true, false, true],
+            delay: 0
+        },
+    ]
 
     function init() {
         if (navigator.bluetooth == undefined) {
@@ -41,6 +50,7 @@ const module = (function () {
         window.ble = this
 
         display_digital_outputs()
+        display_digital_sequence_steps()
     }
 
     function on_sequence_digital_push_click(event) {
@@ -52,10 +62,17 @@ const module = (function () {
     }
 
     async function on_sequence_digital_send_click(event) {
+        for (const step of sequence_digital_steps) {
+            if (step.delay <= 0) {
+                alert('step delays have to be reater zero')
+                return
+            }
+        }
+
         const unfiltered_states = sequence_digital_steps.map(step => step.states)
         const filtered_states = filter_states(unfiltered_states)
 
-        const repetitions = $('#sequence_repetition_count').val()
+        var repetitions = $('#sequence_repetition_count').val()
         if (repetitions == '') {
             repetitions = 1
         } else {
@@ -473,13 +490,20 @@ const module = (function () {
         steps_container.empty()
 
         for (const step of sequence_digital_steps) {
-            var step_description = `states: ${step.states.join(', ')}   delay: ${step.delay}`
+            var step_description = `states: ${step.states.join(', ')}   delay (ms): <input type="number" id="input_delay"/>`
             const step_html = `
             <div class="row">
                 ${step_description}
             </div>
             `
             steps_container.append(step_html)
+            const child = steps_container.children().last()
+            const input_delay = $('#input_delay', child)
+            input_delay.change(step, (event) => {
+                const delay = Number(event.target.value)
+                event.data.delay = delay
+                console.log(sequence_digital_steps)
+            })
         }
     }
 
