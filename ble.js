@@ -15,17 +15,10 @@ const module = (function () {
             default_high: false
         }
     ]
+    output_pins = []
     var input_pins = []
 
     var sequence_digital_steps = [
-        {
-            states: [false, true, false, true, false],
-            delay: 0
-        },
-        {
-            states: [true, false, true, false, true],
-            delay: 0
-        },
     ]
 
     var sequence_last_delay = 100
