@@ -7,29 +7,17 @@ const module = (function () {
     var gatt_server = null
 
     var configured_pins = []
-    var output_pins = [
-        {
-            is_high: false
-        },
-        {
-            is_high: false
-        },
-        {
-            is_high: false
-        },
-        {
-            is_high: false
-        },
-        {
-            is_high: false
-        },
-        {
-            is_high: false
-        },
-    ]
+    var output_pins = []
     var input_pins = []
 
     function init() {
+        if (navigator.bluetooth == undefined) {
+            alert('your browser is not supported. Please chose one from the following compatibility matrix.')
+            document.location = 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API#browser_compatibility'
+
+            return
+        }
+
         $('#button_bluetooth_connect').click(on_bluetooth_button_connect_click)
         $('#button_send_configuration').click(on_button_send_configuraion_click)
 
@@ -38,7 +26,7 @@ const module = (function () {
         window.encode_two_pins = encode_two_pins
         window.decode_state_bytes = decode_state_bytes
 
-        display_digital_outputs()
+        // display_digital_outputs()
     }
 
     async function on_bluetooth_button_connect_click() {
