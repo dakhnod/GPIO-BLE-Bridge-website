@@ -490,11 +490,18 @@ const module = (function () {
         steps_container.empty()
 
         for (const step of sequence_digital_steps) {
-            var step_description = `states: ${step.states.join(', ')}   delay (ms): <input type="number" id="input_delay"/>`
+
             const step_html = `
-            <div class="row">
-                ${step_description}
-            </div>
+                <div class="row">
+                states: ${step.states.join(', ')}
+                </div>
+
+                <div class="row">
+                    <div class="col-xs-2">
+                        <label for="input_delay">delay (ms):</label> 
+                        <input type="number" id="input_delay"/>
+                    </div>
+                </div>
             `
             steps_container.append(step_html)
             const child = steps_container.children().last()
