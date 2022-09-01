@@ -8,51 +8,16 @@ const module = (function () {
     var gatt_server = null
 
     var configured_pins = []
-    var output_pins = []
+    var output_pins = [
+        {
+            function: 'output',
+            invert: false,
+            default_high: false
+        }
+    ]
     var input_pins = []
 
-    var sequence_digital_steps = [
-        {
-            states: [true, false, false, false],
-            delay: 1000
-        },
-        {
-            states: [true, true, false, false],
-            delay: 1000
-        },
-        {
-            states: [true, true, true, false],
-            delay: 1000
-        },
-        {
-            states: [true, true, true, true],
-            delay: 1000
-        },
-        {
-            states: [true, true, true, false],
-            delay: 1000
-        },
-        {
-            states: [true, true, false, false],
-            delay: 1000
-        },
-        {
-            states: [true, false, false, false],
-            delay: 1000
-        },
-        {
-            states: [true, false, false, true],
-            delay: 1000
-        },
-        {
-            states: [true, true, true, true],
-            delay: 1000
-        },
-        {
-            states: [false, true, true, false],
-            delay: 1000
-        },
-    ]
+    var sequence_digital_steps = []
 
     function init() {
         if (navigator.bluetooth == undefined) {
@@ -73,14 +38,9 @@ const module = (function () {
         $('#button_sequence_digital_state_push').click(on_sequence_digital_push_click)
         $('#button_sequence_digital_send').click(on_sequence_digital_send_click)
 
-        window.encode_pin_configuration = encode_pin_configuration
-        window.encode_pin = encode_pin
-        window.encode_two_pins = encode_two_pins
-        window.decode_state_bytes = decode_state_bytes
-        window.encode_states = encode_states
-        window.filter_states = filter_states
+        window.ble = this
 
-        display_digital_sequence_steps()
+        display_digital_outputs()
     }
 
     function on_sequence_digital_push_click(event) {
@@ -95,9 +55,15 @@ const module = (function () {
         const unfiltered_states = sequence_digital_steps.map(step => step.states)
         const filtered_states = filter_states(unfiltered_states)
 
-        const repititions = 0
+        const repetitions = $('#sequence_repetition_count').val()
+        if (repetitions == '') {
+            repetitions = 1
+        } else {
+            repetitions = Number(repetitions)
+        }
+
         const data = [
-            ...encode_varint(repititions)
+            ...encode_varint(repetitions)
         ]
 
         for (var i = 0; i < filtered_states.length; i++) {
@@ -122,14 +88,10 @@ const module = (function () {
 
         for (const packet of packets) {
             console.log(packet)
-        }
-
-
-
-        if (characteristic_output_sequence != null) {
-            for (const packet of packets) {
-                const result = await characteristic_output_sequence.writeValue(new Uint8Array(packet))
-                console.log(result)
+            if (characteristic_output_sequence != null) {
+                console.log('writing sequence...')
+                const result = await characteristic_output_sequence.writeValueWithResponse(new Uint8Array(packet))
+                console.log('written sequence...')
             }
         }
     }
@@ -163,7 +125,7 @@ const module = (function () {
         if (states.length == 1) {
             return states
         }
-        const last_state = states[0]
+        const last_state = [...states[0]]
         const filtered_states = [
             [...states[0]]
         ]
@@ -352,7 +314,7 @@ const module = (function () {
         return {
             pin: index,
             function: 'input',
-            pullup: pull_configs[bits & 0b0110],
+            pull: pull_configs[bits & 0b0110],
             invert: ((bits & 0b0001) == 0b0001)
         }
     }
@@ -410,12 +372,12 @@ const module = (function () {
             return
         }
 
-        var allow_configuration_send = characteristic_configuration != null
+        var allow_configuration_send = (characteristic_configuration != null)
         button_configuration_send.prop('disabled', !allow_configuration_send)
         if (allow_configuration_send) {
-            button_configuration_send.text('No configuration characteristic found')
-        } else {
             button_configuration_send.text('Send to device')
+        } else {
+            button_configuration_send.text('No configuration characteristic found')
         }
 
         const allow_output_sequence = characteristic_output_sequence != null
@@ -613,7 +575,7 @@ const module = (function () {
 
         const payload = encode_states(states)
 
-        await characteristic_output.writeValue(new Uint8Array(payload))
+        await characteristic_output.writeValueWithResponse(new Uint8Array(payload))
     }
 
     async function handle_output_pin_click(event) {
@@ -699,6 +661,9 @@ const module = (function () {
         input_pins = []
 
         characteristic_configuration = null
+        characteristic_output = null
+        characteristic_input = null
+        characteristic_output_sequence = null
 
         is_device_connected = false
         gatt_server = null
@@ -950,7 +915,7 @@ const module = (function () {
         set_device_status('reading configuration...')
         characteristic_configuration = characteristic
         characteristic.addEventListener('characteristicvaluechanged', on_pin_configuration_value_changed)
-        characteristic.readValue()
+        await characteristic.readValue()
     }
 
     function set_device_status(status) {

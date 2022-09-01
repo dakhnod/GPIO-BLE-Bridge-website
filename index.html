@@ -59,6 +59,12 @@
         <div class="row" style="margin-top: 20; margin-bottom: 20">
             <div class="col bg-light">
                 <h2>Digital output sequence</h2>
+
+                <div class="form-group">
+                    <label for="sequence_repetition_count">Repetition count (0 = infinite)</label>
+                    <input type="number" value="1" class="form-control" id="sequence_repetition_count" />
+                </div>
+
                 <button class="btn btn-primary" id="button_sequence_digital_state_push" disabled>Device not
                     connected</button>
 
@@ -68,7 +74,7 @@
                 <button class="btn btn-primary" id="button_sequence_digital_send" disabled>Device not
                     connected</button>
 
-                <div class="container" id="digital_output_sequence_steps">
+                <div class="row" id="digital_output_sequence_steps">
                 </div>
             </div>
         </div>
