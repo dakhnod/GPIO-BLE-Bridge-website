@@ -2,6 +2,7 @@ const module = (function () {
     var is_device_connected = false
     var characteristic_configuration = null
     var characteristic_output = null
+    var characteristic_output_sequence = null
     var characteristic_input = null
     var expects_disconnect = false
     var gatt_server = null
@@ -9,6 +10,49 @@ const module = (function () {
     var configured_pins = []
     var output_pins = []
     var input_pins = []
+
+    var sequence_digital_steps = [
+        {
+            states: [true, false, false, false],
+            delay: 1000
+        },
+        {
+            states: [true, true, false, false],
+            delay: 1000
+        },
+        {
+            states: [true, true, true, false],
+            delay: 1000
+        },
+        {
+            states: [true, true, true, true],
+            delay: 1000
+        },
+        {
+            states: [true, true, true, false],
+            delay: 1000
+        },
+        {
+            states: [true, true, false, false],
+            delay: 1000
+        },
+        {
+            states: [true, false, false, false],
+            delay: 1000
+        },
+        {
+            states: [true, false, false, true],
+            delay: 1000
+        },
+        {
+            states: [true, true, true, true],
+            delay: 1000
+        },
+        {
+            states: [false, true, true, false],
+            delay: 1000
+        },
+    ]
 
     function init() {
         if (navigator.bluetooth == undefined) {
@@ -19,14 +63,75 @@ const module = (function () {
         }
 
         $('#button_bluetooth_connect').click(on_bluetooth_button_connect_click)
+
         $('#button_send_configuration').click(on_button_send_configuraion_click)
+
+        $('#button_sequence_digital_clear').click((event) => {
+            sequence_digital_steps = []
+            display_digital_sequence_steps()
+        })
+        $('#button_sequence_digital_state_push').click(on_sequence_digital_push_click)
+        $('#button_sequence_digital_send').click(on_sequence_digital_send_click)
 
         window.encode_pin_configuration = encode_pin_configuration
         window.encode_pin = encode_pin
         window.encode_two_pins = encode_two_pins
         window.decode_state_bytes = decode_state_bytes
+        window.encode_states = encode_states
+        window.filter_states = filter_states
 
-        // display_digital_outputs()
+        display_digital_sequence_steps()
+    }
+
+    function on_sequence_digital_push_click(event) {
+        sequence_digital_steps.push({
+            states: output_pins.map(pin => pin.is_high),
+            delay: 1000
+        })
+        display_digital_sequence_steps()
+    }
+
+    async function on_sequence_digital_send_click(event) {
+        const unfiltered_states = sequence_digital_steps.map(step => step.states)
+        const filtered_states = filter_states(unfiltered_states)
+
+        const repititions = 0
+        const data = [
+            ...encode_varint(repititions)
+        ]
+
+        for (var i = 0; i < filtered_states.length; i++) {
+            data.push(...encode_states(filtered_states[i]))
+            data.push(...encode_varint(sequence_digital_steps[i].delay))
+        }
+
+        const max_packet_length = 19
+
+        const packets = []
+        const packets_needed = Math.ceil(data.length / max_packet_length)
+
+        for (var i = 0; i < packets_needed; i++) {
+            const packet = [i | 0b10000000] // sequence number with flag indicating that packets will follow
+            const current_position = i * max_packet_length
+            packet.push(...data.slice(current_position, current_position + max_packet_length))
+
+            packets.push(packet)
+        }
+
+        packets[packets.length - 1][0] &= 0b01111111 // unset flag for last packet
+
+        for (const packet of packets) {
+            console.log(packet)
+        }
+
+
+
+        if (characteristic_output_sequence != null) {
+            for (const packet of packets) {
+                const result = await characteristic_output_sequence.writeValue(new Uint8Array(packet))
+                console.log(result)
+            }
+        }
     }
 
     async function on_bluetooth_button_connect_click() {
@@ -49,6 +154,88 @@ const module = (function () {
                 '00001815-0000-1000-8000-00805f9b34fb'
             ]
         }).then(on_bluetooth_device_selected)
+    }
+
+    function filter_states(states) {
+        if (states.length == 0) {
+            return []
+        }
+        if (states.length == 1) {
+            return states
+        }
+        const last_state = states[0]
+        const filtered_states = [
+            [...states[0]]
+        ]
+
+        for (var i = 1; i < states.length; i++) {
+            const state = states[i]
+            const filtered_state = []
+
+            for (var j = 0; j < state.length; j++) {
+                const is_high = state[j]
+                if (is_high == last_state[j]) {
+                    filtered_state.push(undefined)
+                    continue
+                }
+                filtered_state.push(is_high)
+                last_state[j] = is_high
+            }
+            filtered_states.push(filtered_state)
+        }
+
+        return filtered_states
+    }
+
+    function encode_states(states) {
+        const bytes_needed = Math.ceil(states.length / 4)
+        const bytes = Array(bytes_needed).fill(0xff)
+        for (var i = 0; i < states.length; i++) {
+            const state = states[i]
+            if (state == undefined) {
+                continue
+            }
+
+            const byte_index = Math.floor(i / 4)
+            const bit_shift = 6 - ((i * 2) % 8)
+
+            if (state) {
+                bytes[byte_index] &= ~(0b10 << bit_shift)
+            } else {
+                bytes[byte_index] &= ~(0b11 << bit_shift)
+            }
+        }
+
+        return bytes
+    }
+
+    function encode_varint(number) {
+        var bits_needed = 1
+        if (number != 0) {
+            bits_needed = Math.floor(Math.log2(number)) + 1
+        }
+        const bit_mask = 1 << (bits_needed - 1)
+        const bits = []
+        for (var i = 0; i < bits_needed; i++) {
+            bits.push((number & (bit_mask >> i)) != 0)
+        }
+        const bytes = []
+        const bytes_needed = Math.ceil(bits.length / 7)
+
+        for (var i = 0; i < bytes_needed; i++) {
+            var byte = 0x00
+            const start_bit_index = bits.length - (i * 7)
+            for (var j = 0; j < 7; j++) {
+                byte |= bits[start_bit_index - j - 1] << j
+            }
+            bytes.push(byte)
+        }
+
+        for (var i = 0; i < (bytes.length - 1); i++) {
+            bytes[i] |= 0b10000000
+        }
+
+        return bytes
     }
 
     function encode_pin(pin) {
@@ -83,7 +270,7 @@ const module = (function () {
     }
 
     function encode_pin_configuration(configured_pins) {
-        var bytes = []
+        const bytes = []
         for (var i = 0; i < Math.ceil(configured_pins.length / 2); i++) {
             bytes.splice(0, 0, encode_two_pins(
                 configured_pins[(i * 2) + 0],
@@ -197,24 +384,53 @@ const module = (function () {
         if (is_device_connected) {
             set_device_status('connected')
             connect_button.text('Disconnect')
-        } else {
-            set_device_status('not connected')
-            connect_button.text('Connect to device')
         }
 
-        const send_button = $('#button_send_configuration')
-        var allow_configuration_send = !is_device_connected
-        if (is_device_connected) {
-            if (characteristic_configuration == null) {
-                send_button.text('No configuration characteristic found')
-                allow_configuration_send = false
-            } else {
-                send_button.text('Send to device')
+        const button_configuration_send = $('#button_send_configuration')
+
+        const button_sequence_digital_state_push = $('#button_sequence_digital_state_push')
+        const button_sequence_digital_clear = $('#button_sequence_digital_clear')
+        const button_sequence_digital_send = $('#button_sequence_digital_send')
+
+        if (!is_device_connected) {
+            set_device_status('not connected')
+            connect_button.text('Connect to device')
+
+            const buttons_to_disable = [
+                button_configuration_send,
+                button_sequence_digital_state_push,
+                button_sequence_digital_clear,
+                button_sequence_digital_send,
+            ]
+
+            for (const button of buttons_to_disable) {
+                button.text('Device not connected')
+                button.prop('disabled', true)
             }
-        } else {
-            send_button.text('Device not connected')
+            return
         }
-        send_button.prop('disabled', allow_configuration_send)
+
+        var allow_configuration_send = characteristic_configuration != null
+        button_configuration_send.prop('disabled', !allow_configuration_send)
+        if (allow_configuration_send) {
+            button_configuration_send.text('No configuration characteristic found')
+        } else {
+            button_configuration_send.text('Send to device')
+        }
+
+        const allow_output_sequence = characteristic_output_sequence != null
+        button_sequence_digital_state_push.prop('disabled', !allow_output_sequence)
+        button_sequence_digital_clear.prop('disabled', !allow_output_sequence)
+        button_sequence_digital_send.prop('disabled', !allow_output_sequence)
+        if (allow_output_sequence) {
+            button_sequence_digital_state_push.text('Copy current output states')
+            button_sequence_digital_clear.text('Clear sequence')
+            button_sequence_digital_send.text('Send sequence to device')
+        } else {
+            button_sequence_digital_state_push.text('No output sequence characteristic found')
+            button_sequence_digital_clear.text('No output sequence characteristic found')
+            button_sequence_digital_send.text('No output sequence characteristic found')
+        }
     }
 
     function create_select(id, label, pin_data, options, selected, is_checkbox, function_class = '') {
@@ -290,8 +506,24 @@ const module = (function () {
         set_configuration_visibility()
     }
 
+    function display_digital_sequence_steps() {
+        const steps_container = $('#digital_output_sequence_steps')
+        steps_container.empty()
+
+        for (const step of sequence_digital_steps) {
+            var step_description = `states: ${step.states.join(', ')}   delay: ${step.delay}`
+            const step_html = `
+            <div class="row">
+                ${step_description}
+            </div>
+            `
+            steps_container.append(step_html)
+        }
+    }
+
     function display_pin_configuration_menu() {
-        $('#pin_configuration').empty()
+        const pin_configuration_container = $('#pin_configuration')
+        pin_configuration_container.empty()
         for (const pin of configured_pins) {
             const functions = [
                 { value: 'disabled', 'label': 'Disabled' },
@@ -328,7 +560,7 @@ const module = (function () {
             </div>
             </a>
             `
-            $('#pin_configuration').append(select_html)
+            pin_configuration_container.append(select_html)
 
             create_select('function', 'Function', pin, functions, pin.function, false)
             create_select('invert', 'Invert', pin, invert, pin.invert, true, 'function_both')
@@ -368,25 +600,6 @@ const module = (function () {
         display_device_information();
     }
 
-    function encode_state_bits(index, is_high) {
-        const bytes_needed = Math.ceil(output_pins.length / 4)
-
-        var bytes = []
-        for (var i = 0; i < bytes_needed; i++) {
-            bytes.push(0xff)
-        }
-
-        const byte_index = Math.floor(index / 4)
-        const bit_index = ((index % 4) * 2)
-        var mask = 0b11000000
-        if (is_high) {
-            mask = 0b10000000
-        }
-        bytes[byte_index] &= ~(mask >> bit_index)
-
-        return bytes
-    }
-
     async function send_digital_output_pin(index, state) {
         if (!is_device_connected) {
             throw 'Device not connected'
@@ -395,7 +608,10 @@ const module = (function () {
             throw 'Digital output characteristic not present'
         }
 
-        const payload = encode_state_bits(index, state)
+        const states = Array(output_pins.length).fill(undefined)
+        states[index] = state
+
+        const payload = encode_states(states)
 
         await characteristic_output.writeValue(new Uint8Array(payload))
     }
@@ -455,7 +671,7 @@ const module = (function () {
     }
 
     function decode_state_bytes(bytes) {
-        var states = []
+        const states = []
 
         const possible_pins = bytes.length * 4
         for (var i = 0; i < possible_pins; i++) {
@@ -623,6 +839,11 @@ const module = (function () {
         }
     }
 
+    function handle_digital_output_sequence_characteristic(characteristic) {
+        characteristic_output_sequence = characteristic
+        display_device_information()
+    }
+
     function set_digital_outputs_text(text) {
         const digital_output_info = $('#info_digital_outputs')
         if (text == '' || text == null) {
@@ -665,6 +886,8 @@ const module = (function () {
                 await handle_pin_configuration_characteristic(characteristic)
             } else if (uuid == '00002a56-0000-1000-8000-00805f9b34fb') {
                 await handle_digital_characteristic(characteristic)
+            } else if (uuid == '9c102a56-5cf1-8fa7-1549-01fdc1d171dc') {
+                handle_digital_output_sequence_characteristic(characteristic)
             }
         }
 
