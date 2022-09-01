@@ -28,6 +28,8 @@ const module = (function () {
         },
     ]
 
+    var sequence_last_delay = 100
+
     function init() {
         if (navigator.bluetooth == undefined) {
             alert('your browser is not supported. Please chose one from the following compatibility matrix.')
@@ -49,14 +51,14 @@ const module = (function () {
 
         window.ble = this
 
-        display_digital_outputs()
-        display_digital_sequence_steps()
+        // display_digital_outputs()
+        // display_digital_sequence_steps()
     }
 
     function on_sequence_digital_push_click(event) {
         sequence_digital_steps.push({
             states: output_pins.map(pin => pin.is_high),
-            delay: 1000
+            delay: sequence_last_delay
         })
         display_digital_sequence_steps()
     }
@@ -489,8 +491,6 @@ const module = (function () {
         const steps_container = $('#digital_output_sequence_steps')
         steps_container.empty()
 
-        var last_number = 100
-
         for (const step of sequence_digital_steps) {
 
             const step_html = `
@@ -501,7 +501,7 @@ const module = (function () {
                 <div class="row">
                     <div class="col-xs">
                         <label for="input_delay">delay (ms):</label> 
-                        <input class="form-control" type="number" id="input_delay" value="${last_number}"/>
+                        <input class="form-control" type="number" id="input_delay" value="${step.delay}"/>
                     </div>
                 </div>
             `
@@ -511,7 +511,7 @@ const module = (function () {
             input_delay.change(step, (event) => {
                 const delay = Number(event.target.value)
                 event.data.delay = delay
-                last_number = delay
+                sequence_last_delay = delay
                 console.log(sequence_digital_steps)
             })
         }
