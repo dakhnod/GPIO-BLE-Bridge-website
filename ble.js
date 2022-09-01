@@ -608,12 +608,12 @@ const module = (function () {
     async function handle_output_pin_click(event) {
         const index = event.data
         output_pins[index].is_high = !output_pins[index].is_high
-        display_digital_outputs()
         try {
             send_digital_output_pin(index, output_pins[index].is_high)
         } catch (e) {
             set_digital_outputs_text(e)
         }
+        display_digital_outputs()
     }
 
     function display_digital_outputs() {
