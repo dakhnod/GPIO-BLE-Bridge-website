@@ -372,7 +372,9 @@ const module = (function () {
         set_device_status('read configuration.')
 
         match_output_pins_to_configuration()
+        match_input_pins_to_configuration()
         display_digital_outputs()
+        display_digital_inputs()
 
         display_pin_configuration_menu(configured_pins)
         display_device_information();
@@ -695,7 +697,7 @@ const module = (function () {
         if (input_pins.length == 0) {
             return
         }
-        if (configured_pins == 0) {
+        if (configured_pins.length == 0) {
             return
         }
 
@@ -716,7 +718,7 @@ const module = (function () {
         if (output_pins.length == 0) {
             return
         }
-        if (configured_pins == 0) {
+        if (configured_pins.length == 0) {
             return
         }
 
