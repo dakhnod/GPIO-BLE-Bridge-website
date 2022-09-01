@@ -497,9 +497,9 @@ const module = (function () {
                 </div>
 
                 <div class="row">
-                    <div class="col-xs-2">
+                    <div class="col-xs">
                         <label for="input_delay">delay (ms):</label> 
-                        <input type="number" id="input_delay"/>
+                        <input class="form-control" type="number" id="input_delay"/>
                     </div>
                 </div>
             `
