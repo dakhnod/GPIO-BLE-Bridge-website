@@ -48,7 +48,6 @@ const module = (function () {
         $('#button_bluetooth_connect').click(on_bluetooth_button_connect_click)
 
         $('#button_send_configuration').click(on_button_send_configuraion_click)
-        $('#button_sequence_digital_state_push').click(on_sequence_digital_push_click)
         $('#button_sequence_digital_send').click(on_sequence_digital_send_click)
         $('#button_sequence_add_step').click((_) => {
             insert_step(0)
@@ -59,14 +58,6 @@ const module = (function () {
         display_digital_outputs()
         display_digital_inputs()
         display_device_information()
-        display_digital_sequence_steps()
-    }
-
-    function on_sequence_digital_push_click(event) {
-        sequence_digital_steps.push({
-            states: output_pins.map(pin => pin.is_high),
-            delay: sequence_last_delay
-        })
         display_digital_sequence_steps()
     }
 
@@ -500,7 +491,7 @@ const module = (function () {
 
     function insert_step(index) {
         const step = {
-            states: output_pins.map(pin => pin.is_high),
+            states: Array(output_pins.length).fill(false),
             delay: sequence_last_delay
         }
         sequence_digital_steps.splice(index, 0, step)
