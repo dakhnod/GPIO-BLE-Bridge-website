@@ -21,18 +21,104 @@
         }
     </style>
     -->
+
+
+    <style>
+        div.button-pin {
+            min-width: 10mm;
+            min-height: 10mm;
+            max-width: 15mm;
+            max-height: 15mm;
+            width: 12vw;
+            height: 12vw;
+            position: relative;
+            background-color: rgba(255, 0, 0, 0.336);
+        }
+
+        img.sequence-action-button {
+            min-width: 10mm;
+            min-height: 10mm;
+            max-width: 15mm;
+            max-height: 15mm;
+            width: 12vw;
+            height: 12vw;
+        }
+
+        div.sequence-action-container {
+            gap: 1em;
+            justify-content: center;
+        }
+
+        .button-pin-state {
+            min-width: 6mm;
+            min-height: 6mm;
+            max-width: 10mm;
+            max-height: 10mm;
+            width: 6vw;
+            height: 6vw;
+        }
+
+        .center {
+            margin: 0;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            -ms-transform: translate(-50%, -50%);
+            transform: translate(-50%, -50%);
+        }
+
+        div.button-container {
+            gap: 2vw;
+            flex-wrap: wrap;
+            justify-self: center;
+        }
+
+        div.pin-high {
+            background-color: rgba(81, 255, 0, 0.425);
+        }
+
+        div.segment {
+            margin: 1em;
+            background-color: rgba(0, 0, 0, 0.13);
+            border-radius: 1em;
+            padding-top: 1em;
+            padding-bottom: 1em;
+        }
+
+        div.sequence-container {
+            background-color: rgba(0, 0, 0, 0.30);
+            margin: 0.5em;
+            padding: 0.5em;
+            min-width: 40mm;
+            gap: 1em;
+        }
+
+        div.sequence-list {
+            flex-wrap: wrap;
+        }
+
+        div.sequence-add-options {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2mm;
+        }
+    </style>
 </head>
 
 <body>
 
     <div class="container">
-        <h1>BLE Automation IO configurator</h1>
-        <div class="row my-3">
-            <div class="col bg-light">
+        <div class="row">
+            <h1>BLE Automation IO configurator</h1>
+        </div>
+
+        <div class="row segment">
+            <div class="col">
                 <h2>Bluetooth control</h2>
                 <div class="col" style="padding: 20">
                     <div class="row">
-                        <button class="btn btn-primary" id="button_bluetooth_connect">Connect to device</button>
+                        <button class="btn btn-primary w-100" id="button_bluetooth_connect">Connect to
+                            device</button>
                     </div>
                     <div class="row">
                         <span id="info_device_name">Device name: </span>
@@ -44,57 +130,55 @@
             </div>
         </div>
 
-        <div class="row my-3 ">
-            <div class="col bg-light">
+        <div class="row segment">
+            <div class="col">
                 <h2>Digital outputs</h2>
                 <div class="col" id="info_digital_outputs">
                     Device not connected
                 </div>
 
-                <div class="row" id="digital_output_buttons">
+                <div class="d-flex button-container" id="digital_output_buttons">
                 </div>
             </div>
         </div>
 
-        <div class="row my-3">
-            <div class="col bg-light">
+        <div class="row segment">
+            <div class="col">
                 <h2>Digital output sequence</h2>
 
                 <div class="form-group">
                     <label for="sequence_repetition_count">Repetition count (0 = infinite)</label>
-                    <input type="number" value="1" class="form-control" id="sequence_repetition_count" />
+                    <input type="number" value="0" class="form-control" id="sequence_repetition_count" />
                 </div>
 
-                <button class="btn btn-primary" id="button_sequence_digital_state_push" disabled>Device not
+                <button class="btn btn-primary w-100" id="button_sequence_digital_send" disabled>Device
+                    not
                     connected</button>
 
-                <button class="btn btn-primary" id="button_sequence_digital_clear" disabled>Device not
-                    connected</button>
+                <button class="btn btn-primary w-100 mt-2" id="button_sequence_add_step" disabled>Add new step</button>
 
-                <button class="btn btn-primary" id="button_sequence_digital_send" disabled>Device not
-                    connected</button>
-
-                <div class="container" id="digital_output_sequence_steps">
+                <div class="d-flex sequence-list" id="digital_output_sequence_steps">
                 </div>
             </div>
         </div>
 
-        <div class="row" style="margin-top: 20; margin-bottom: 20">
-            <div class="col bg-light">
+        <div class="row segment">
+            <div class="col">
                 <h2>Digital inputs</h2>
                 <div class="col" id="info_digital_inputs">
                     Device not connected
                 </div>
-                <div class="row" id="digital_input_buttons">
+
+                <div class="d-flex button-container" id="digital_input_buttons">
                 </div>
             </div>
         </div>
 
-        <div class="row" style="margin-top: 20; margin-bottom: 20">
-            <div class="col bg-light">
+        <div class="row segment">
+            <div class="col">
                 <div>
                     <h2>Pin configuration</h2>
-                    <button class="btn btn-primary" id="button_send_configuration" disabled>Device not
+                    <button class="btn btn-primary w-100 id=" button_send_configuration" disabled>Device not
                         connected</button>
                 </div>
                 <div id="pin_configuration" class="list-group">

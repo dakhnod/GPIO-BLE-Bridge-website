@@ -2,50 +2,64 @@ const module = (function () {
     var is_device_connected = false
     var characteristic_configuration = null
     var characteristic_output = null
-    var characteristic_output_sequence = null
+    var characteristic_output_sequence = 1
     var characteristic_input = null
     var expects_disconnect = false
     var gatt_server = null
 
-    var configured_pins = []
+    var configured_pins = [
+    ]
     var output_pins = [
         {
-            function: 'output',
-            invert: false,
-            default_high: false
+            is_high: false
+        },
+        {
+            is_high: false
         }
     ]
     output_pins = []
-    var input_pins = []
-
-    var sequence_digital_steps = [
+    var input_pins = [
+        {
+            is_high: false
+        },
+        {
+            is_high: false
+        },
+        {
+            is_high: true
+        },
     ]
+    input_pins = []
+
+    var sequence_digital_steps = []
 
     var sequence_last_delay = 100
 
+    var last_added_step = undefined
+
     function init() {
         if (navigator.bluetooth == undefined) {
-            alert('your browser is not supported. Please chose one from the following compatibility matrix.')
-            document.location = 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API#browser_compatibility'
+            //alert('your browser is not supported. Please chose one from the following compatibility matrix.')
+            //document.location = 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API#browser_compatibility'
 
-            return
+            //return
         }
 
         $('#button_bluetooth_connect').click(on_bluetooth_button_connect_click)
 
         $('#button_send_configuration').click(on_button_send_configuraion_click)
-
-        $('#button_sequence_digital_clear').click((event) => {
-            sequence_digital_steps = []
-            display_digital_sequence_steps()
-        })
         $('#button_sequence_digital_state_push').click(on_sequence_digital_push_click)
         $('#button_sequence_digital_send').click(on_sequence_digital_send_click)
+        $('#button_sequence_add_step').click((_) => {
+            insert_step(0)
+        })
 
         window.ble = this
 
-        // display_digital_outputs()
-        // display_digital_sequence_steps()
+        display_digital_outputs()
+        display_digital_inputs()
+        display_device_information()
+        display_digital_sequence_steps()
     }
 
     function on_sequence_digital_push_click(event) {
@@ -362,9 +376,8 @@ const module = (function () {
 
         const button_configuration_send = $('#button_send_configuration')
 
-        const button_sequence_digital_state_push = $('#button_sequence_digital_state_push')
-        const button_sequence_digital_clear = $('#button_sequence_digital_clear')
         const button_sequence_digital_send = $('#button_sequence_digital_send')
+        const button_sequence_ditital_add = $('#button_sequence_add_step')
 
         if (!is_device_connected) {
             set_device_status('not connected')
@@ -372,9 +385,8 @@ const module = (function () {
 
             const buttons_to_disable = [
                 button_configuration_send,
-                button_sequence_digital_state_push,
-                button_sequence_digital_clear,
                 button_sequence_digital_send,
+                button_sequence_ditital_add
             ]
 
             for (const button of buttons_to_disable) {
@@ -384,7 +396,7 @@ const module = (function () {
             return
         }
 
-        var allow_configuration_send = (characteristic_configuration != null)
+        const allow_configuration_send = (characteristic_configuration != null)
         button_configuration_send.prop('disabled', !allow_configuration_send)
         if (allow_configuration_send) {
             button_configuration_send.text('Send to device')
@@ -393,16 +405,13 @@ const module = (function () {
         }
 
         const allow_output_sequence = characteristic_output_sequence != null
-        button_sequence_digital_state_push.prop('disabled', !allow_output_sequence)
-        button_sequence_digital_clear.prop('disabled', !allow_output_sequence)
+        button_sequence_ditital_add.prop('disabled', !allow_output_sequence)
         button_sequence_digital_send.prop('disabled', !allow_output_sequence)
         if (allow_output_sequence) {
-            button_sequence_digital_state_push.text('Copy current output states')
-            button_sequence_digital_clear.text('Clear sequence')
+            button_sequence_ditital_add.text('Add first step')
             button_sequence_digital_send.text('Send sequence to device')
         } else {
-            button_sequence_digital_state_push.text('No output sequence characteristic found')
-            button_sequence_digital_clear.text('No output sequence characteristic found')
+            button_sequence_ditital_add.text('No output sequence characteristic found')
             button_sequence_digital_send.text('No output sequence characteristic found')
         }
     }
@@ -480,27 +489,99 @@ const module = (function () {
         set_configuration_visibility()
     }
 
+    function insert_step(index) {
+        const step = {
+            states: output_pins.map(pin => pin.is_high),
+            delay: sequence_last_delay
+        }
+        sequence_digital_steps.splice(index, 0, step)
+        last_added_step = index
+        display_digital_sequence_steps()
+    }
+
     function display_digital_sequence_steps() {
         const steps_container = $('#digital_output_sequence_steps')
         steps_container.empty()
 
-        for (const step of sequence_digital_steps) {
+        if (sequence_digital_steps.length == 0) {
+            $('#button_sequence_add_step').show()
+        } else {
+            $('#button_sequence_add_step').hide()
+        }
+
+        for (var i = 0; i < sequence_digital_steps.length; i++) {
+            const step = sequence_digital_steps[i]
 
             const step_html = `
-                <div class="row">
-                states: ${step.states.join(', ')}
-                </div>
-
-                <div class="row">
-                    <div class="col-xs">
-                        <label for="input_delay">delay (ms):</label> 
-                        <input class="form-control" type="number" id="input_delay" value="${step.delay}"/>
+            <div class="sequence-container">
+                    <div class="d-flex button-container" id="button-container">
+                    </div>
+                    <div class="form-group">
+                        <label for="delay">delay: </label>
+                        <input type="number" class="form-control" id="input-delay" value="${step.delay}">
+                    </div>
+                    <div class="d-flex sequence-action-container">
+                        <img src="add-before.png" class="sequence-action-button" id="action-add-before"/>
+                        <img src="add-after.png" class="sequence-action-button" id="action-add-after"/>
+                        <img src="remove.png" class="sequence-action-button" id="action-delete"/>
                     </div>
                 </div>
             `
             steps_container.append(step_html)
+
             const child = steps_container.children().last()
-            const input_delay = $('#input_delay', child)
+
+            if (last_added_step != undefined && i == last_added_step) {
+                child.focus()
+                i = undefined
+            }
+
+            $('#action-add-after', child).click(i, (event) => {
+                insert_step(event.data + 1)
+            })
+
+            $('#action-add-before', child).click(i, (event) => {
+                insert_step(event.data)
+            })
+
+            $('#action-delete', child).click(i, (event) => {
+                const index = event.data
+                sequence_digital_steps.splice(index, 1)
+                display_digital_sequence_steps()
+            })
+
+            const button_container = $('#button-container', child)
+            for (var j = 0; j < step.states.length; j++) {
+                var label = '?'
+                if (output_pins[j].pin != undefined) {
+                    label = output_pins[j].pin
+                }
+                var button_html = `
+                    <div class="button-pin button-pin-state" id="state-button">
+                        <span class="center">${label}</span>
+                    </div>`;
+                button_container.append(button_html)
+
+                const button = button_container.children().last()
+
+                if (step.states[j]) {
+                    button[0].classList.add('pin-high')
+                }
+
+                button.click(j, (event) => {
+                    const states = step.states
+                    states[j] = !states[j]
+                    console.log(step)
+                    if (states[j]) {
+                        event.currentTarget.classList.add('pin-high')
+                    } else {
+                        event.currentTarget.classList.remove('pin-high')
+                    }
+
+                })
+            }
+
+            const input_delay = $('#input-delay', child)
             input_delay.change(step, (event) => {
                 const delay = Number(event.target.value)
                 event.data.delay = delay
@@ -607,7 +688,13 @@ const module = (function () {
 
     async function handle_output_pin_click(event) {
         const index = event.data
-        output_pins[index].is_high = !output_pins[index].is_high
+        const pin = output_pins[index]
+        pin.is_high = !pin.is_high
+        if (pin.is_high) {
+            event.target.classList.add('pin-high')
+        } else {
+            event.target.classList.remove('pin-high')
+        }
         try {
             send_digital_output_pin(index, output_pins[index].is_high)
         } catch (e) {
@@ -622,15 +709,20 @@ const module = (function () {
         for (var i = 0; i < output_pins.length; i++) {
             const output_pin = output_pins[i]
 
-            var label = null
+            var label = '?'
             if (output_pin.pin != undefined) {
-                label = `Pin ${output_pin.pin}`
-            } else {
-                label = output_pin.is_high ? 'On' : 'Off'
+                label = output_pin.pin
             }
-            const background_class = output_pin.is_high ? 'bg-success' : 'bg-secondary'
+            var background_class = ''
+            if (output_pin.is_high) {
+                background_class = 'pin-high'
+            }
 
-            var button_html = `<div class="col col-sm ${background_class}">${label}</div>`
+            var button_html = `
+            <div class="button-pin ${background_class}">
+                <span class="center">${label}</span>
+            </div>
+            `
 
             button_container.append(button_html)
             const button = button_container.children().last()
@@ -645,16 +737,20 @@ const module = (function () {
         for (var i = 0; i < input_pins.length; i++) {
             const input_pin = input_pins[i]
 
-            var label = null
-            if (input_pin.pin != undefined) {
-                label = `Pin ${input_pin.pin}`
-            } else {
-                label = input_pin.is_high ? 'On' : 'Off'
+            var label = '?'
+            if (input_pins.pin != undefined) {
+                label = input_pins.pin
             }
-            const background_class = input_pin.is_high ? 'bg-success' : 'bg-secondary'
+            var background_class = ''
+            if (input_pins.is_high) {
+                background_class = 'pin-high'
+            }
 
-            var button_html = `<div class="col col-sm ${background_class}">${label}</div>`
-
+            var button_html = `
+            <div class="button-pin ${background_class}">
+                <span class="center">${label}</span>
+            </div>
+            `
             button_container.append(button_html)
         }
     }
@@ -793,19 +889,23 @@ const module = (function () {
             await characteristic.startNotifications()
             characteristic.addEventListener('characteristicvaluechanged', (event) => {
                 const bytes = new Uint8Array(event.target.value.buffer)
-                console.log(bytes)
                 const decoded_states = decode_state_bytes(bytes)
-                console.log(decoded_states)
                 var pin_changed = false
+                const input_container = $('#digital_input_buttons')
                 for (const state of decoded_states) {
                     if (state.is_high == undefined) {
                         continue
                     }
                     input_pins[state.index].is_high = state.is_high
                     pin_changed = true
-                }
-                if (pin_changed) {
-                    display_digital_inputs()
+
+                    const input_button = input_container
+                        .children()[state.index]
+                    if (state.is_high) {
+                        input_button.classList.add('pin-high')
+                    } else {
+                        input_button.classList.remove('pin-high')
+                    }
                 }
             })
         }
