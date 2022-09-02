@@ -91,11 +91,6 @@
             margin: 0.5em;
             padding: 0.5em;
             min-width: 40mm;
-            gap: 1em;
-        }
-
-        div.sequence-list {
-            flex-wrap: wrap;
         }
 
         div.sequence-add-options {
@@ -106,6 +101,14 @@
 
         div.sequence-current {
             background-color: rgba(0, 197, 10, 0.541);
+        }
+
+        div.pin-configuration-container {
+            background-color: rgba(0, 0, 0, 0.30);
+            margin: 0.5em;
+            padding: 0.5em;
+            border-radius: 5%;
+            min-width: 10em;
         }
     </style>
 </head>
@@ -162,7 +165,7 @@
 
                 <button class="btn btn-primary w-100 mt-2" id="button_sequence_add_step" disabled>Add new step</button>
 
-                <div class="d-flex sequence-list" id="digital_output_sequence_steps">
+                <div class="d-flex flex-wrap" id="digital_output_sequence_steps">
                 </div>
             </div>
         </div>
@@ -183,24 +186,73 @@
             <div class="col">
                 <div>
                     <h2>Pin configuration</h2>
-                    <button class="btn btn-primary w-100 id=" button_send_configuration" disabled>Device not
+                    <button class="btn btn-primary w-100" id="button_send_configuration" disabled>Device not
                         connected</button>
                 </div>
-                <div id="pin_configuration" class="list-group">
+                <div class="d-flex flex-wrap" id="pin-configurations">
+                    <div class="pin-configuration-container">
+                        <h3>Pin 25</h3>
 
+                        <div class="dropdown mb-1">
+                            <button class="btn btn-primary dropdown-toggle w-100" type="button" id="pin-function-button"
+                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Replace this with function
+                            </button>
+                            <div class="dropdown-menu" aria-labelledby="pin-function-button">
+                                <a class="dropdown-item">Disabled</a>
+                                <a class="dropdown-item">Output</a>
+                                <a class="dropdown-item">Input</a>
+                            </div>
+                        </div>
+
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle mb-1 w-100" type="button"
+                                id="pin-pull-button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Replace this with pull
+                            </button>
+                            <div class="dropdown-menu" aria-labelledby="pin-function-button">
+                                <a class="dropdown-item">No pull</a>
+                                <a class="dropdown-item">Pullup</a>
+                                <a class="dropdown-item">Pulldown</a>
+                            </div>
+                        </div>
+
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle mb-1 w-100" type="button"
+                                id="pin-default-button" data-toggle="dropdown" aria-haspopup="true"
+                                aria-expanded="false">
+                                Replace this with default
+                            </button>
+                            <div class="dropdown-menu" aria-labelledby="pin-function-button">
+                                <a class="dropdown-item">Default LOW</a>
+                                <a class="dropdown-item">Default HIGH</a>
+                            </div>
+                        </div>
+
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle mb-1 w-100" type="button"
+                                id="pin-invert-button" data-toggle="dropdown" aria-haspopup="true"
+                                aria-expanded="false">
+                                Replace this with inversion
+                            </button>
+                            <div class="dropdown-menu" aria-labelledby="pin-function-button">
+                                <a class="dropdown-item">Not invert</a>
+                                <a class="dropdown-item">Invert</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
-        crossorigin="anonymous"></script>
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+            crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct"
+            crossorigin="anonymous"></script>
 
-    <script src="ble.js"></script>
+        <script src="ble.js"></script>
 
 </body>
 

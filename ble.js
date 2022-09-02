@@ -8,7 +8,26 @@ const module = (function () {
     var gatt_server = null
 
     var configured_pins = [
+        {
+            pin: 0,
+            function: 'input',
+            pull: 'pullup',
+            invert: false
+        },
+        {
+            pin: 1,
+            function: 'output',
+            default_high: false,
+            invert: false
+        },
+        {
+            pin: 2,
+            function: 'disabled',
+            default_high: false,
+            invert: false
+        },
     ]
+    configured_pins = []
     var output_pins = [
         {
             is_high: false
@@ -17,7 +36,7 @@ const module = (function () {
             is_high: false
         }
     ]
-    // output_pins = []
+    output_pins = []
     var input_pins = [
         {
             is_high: false
@@ -36,6 +55,8 @@ const module = (function () {
     var sequence_last_delay = 1000
 
     var last_added_step = undefined
+
+    var output_buttons_ignore = false
 
     function init() {
         if (navigator.bluetooth == undefined) {
@@ -59,6 +80,7 @@ const module = (function () {
         display_digital_inputs()
         display_device_information()
         display_digital_sequence_steps()
+        display_pin_configuration_menu()
     }
 
     async function on_sequence_digital_send_click(event) {
@@ -288,6 +310,10 @@ const module = (function () {
 
         expects_disconnect = true
         await characteristic_configuration.writeValueWithResponse(new Uint8Array(payload))
+        // reset everything since pin count might change
+        output_pins = []
+        configured_pins = []
+        sequence_digital_steps = []
         set_device_status('sending configuration...')
     }
 
@@ -296,8 +322,7 @@ const module = (function () {
         set_device_status('connecting...')
 
         device.addEventListener('gattserverdisconnected', () => {
-            application_reset()
-
+            handle_device_disconnect()
             if (expects_disconnect) {
                 alert('device rebooted. Please reconnect.')
             }
@@ -386,12 +411,15 @@ const module = (function () {
             const buttons_to_disable = [
                 button_configuration_send,
                 button_sequence_digital_send,
-                button_sequence_ditital_add
             ]
 
             for (const button of buttons_to_disable) {
                 button.text('Device not connected')
                 button.prop('disabled', true)
+            }
+
+            if (output_pins == []) {
+                button_sequence_ditital_add.prop('disabled', true)
             }
             return
         }
@@ -592,9 +620,59 @@ const module = (function () {
         }
     }
 
+    function create_pin_configuration_dropdown(parent, pin, pin_field, options) {
+        const selected = pin[pin_field]
+        const button_id = `pin-${pin_field}-button`
+
+        var selected_label = options[0].label
+        const selected_option = options
+            .find(option => option.value == selected)
+        if (selected_option != undefined) {
+            selected_label = selected_option.label
+        } else {
+            pin[pin_field] = options[0].value
+        }
+
+        const output_html = `
+        <div class="dropdown mb-1">
+            <button class="btn btn-primary dropdown-toggle w-100" type="button" id="dropdown-button"
+                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                ${selected_label}
+            </button>
+            <div class="dropdown-menu" aria-labelledby="dropdown-button" id="dropdown-options">
+            </div>
+        </div>
+        `
+        parent.append(output_html)
+
+        const child = parent.children().last()
+
+
+        const dropdown_button = $('#dropdown-button', child)
+        const container_options = $('#dropdown-options', child)
+        for (const option of options) {
+            const option_html = `<a class="dropdown-item">${option.label}</a>`
+
+            container_options.append(option_html)
+
+            const button = container_options
+                .children()
+                .last()
+
+            button.click(event => {
+                pin[pin_field] = option.value
+                // dropdown_button.text(option.label)
+                display_pin_configuration_menu()
+            })
+        }
+    }
+
     function display_pin_configuration_menu() {
-        const pin_configuration_container = $('#pin_configuration')
-        pin_configuration_container.empty()
+        const pin_configurations_container = $('#pin-configurations')
+
+        pin_configurations_container.empty()
+
+        pin_configurations_container.empty()
         for (const pin of configured_pins) {
             const functions = [
                 { value: 'disabled', 'label': 'Disabled' },
@@ -606,37 +684,34 @@ const module = (function () {
                 { value: true, label: 'Invert' }
             ]
             const pulls = [
-                { value: 'disabled', label: 'No pullup/pulldown' },
+                { value: 'disabled', label: 'No pull' },
                 { value: 'pullup', label: 'Pullup' },
                 { value: 'pulldown', label: 'Pulldown' }
             ]
             const default_high = [
-                { value: false, label: 'Low' },
-                { value: true, label: 'High' }
+                { value: false, label: 'Default low' },
+                { value: true, label: 'Default high' }
             ]
-            const pin_index = pin.pin
 
-            var select_html = `
-            <a class="list-group-item">
-            <div>
-                <div class="col">
-                    <div class="row">
-                        <h5>Pin ${pin.pin}</h5>
-                    </div>
-
-                    <div class="col" id="pin-${pin.pin}-configuration">
-
-                    </div>
-                </div>
+            const parent_html = `
+            <div class="pin-configuration-container">
+            <h3>Pin ${pin.pin}</h3>
             </div>
-            </a>
             `
-            pin_configuration_container.append(select_html)
+            pin_configurations_container.append(parent_html)
 
-            create_select('function', 'Function', pin, functions, pin.function, false)
-            create_select('invert', 'Invert', pin, invert, pin.invert, true, 'function_both')
-            create_select('pull', 'Pullup/down', pin, pulls, pin.pull, false, 'function_input')
-            create_select('default_high', 'Default state', pin, default_high, pin.default_high, false, 'function_output')
+            const container = pin_configurations_container.children().last()
+
+            create_pin_configuration_dropdown(container, pin, 'function', functions)
+            if (pin.function != 'disabled') {
+                create_pin_configuration_dropdown(container, pin, 'invert', invert)
+
+                if (pin.function == 'input') {
+                    create_pin_configuration_dropdown(container, pin, 'pull', pulls)
+                } else {
+                    create_pin_configuration_dropdown(container, pin, 'default_high', default_high)
+                }
+            }
         }
 
         set_configuration_visibility()
@@ -684,10 +759,14 @@ const module = (function () {
 
         const payload = encode_states(states)
 
-        await characteristic_output.writeValueWithResponse(new Uint8Array(payload))
+        return characteristic_output.writeValueWithResponse(new Uint8Array(payload))
     }
 
     async function handle_output_pin_click(event) {
+        if (output_buttons_ignore) {
+            return
+        }
+
         const index = event.data
         const pin = output_pins[index]
         pin.is_high = !pin.is_high
@@ -697,11 +776,21 @@ const module = (function () {
             event.target.classList.remove('pin-high')
         }
         try {
-            send_digital_output_pin(index, output_pins[index].is_high)
+            set_output_buttons_enabled(false)
+            await send_digital_output_pin(index, output_pins[index].is_high)
         } catch (e) {
             set_digital_outputs_text(e)
+        } finally {
+            set_output_buttons_enabled(true)
         }
-        display_digital_outputs()
+        // display_digital_outputs()
+    }
+
+    function set_output_buttons_enabled(enabled) {
+        output_buttons_ignore = !enabled
+        for (const button of $('.button-output')) {
+            button.style.opacity = enabled ? 1.0 : 0.3
+        }
     }
 
     function display_digital_outputs() {
@@ -720,7 +809,7 @@ const module = (function () {
             }
 
             var button_html = `
-            <div class="button-pin ${background_class}">
+            <div class="button-pin button-output ${background_class}">
                 <span class="center">${label}</span>
             </div>
             `
@@ -779,9 +868,9 @@ const module = (function () {
         return states
     }
 
-    function application_reset() {
-        configured_pins = []
-        output_pins = []
+    function handle_device_disconnect() {
+        // configured_pins = []
+        // output_pins = []
         input_pins = []
 
         characteristic_configuration = null
@@ -796,9 +885,11 @@ const module = (function () {
         display_digital_inputs()
         display_pin_configuration_menu()
         display_device_information()
+        display_digital_sequence_steps()
 
         set_digital_outputs_text('Device not connected')
         set_digital_inputs_text('Device not connected')
+        set_output_buttons_enabled(false)
     }
 
     async function handle_digital_output_characteristic(characteristic) {
@@ -981,6 +1072,8 @@ const module = (function () {
         is_device_connected = gatt.connected
         gatt_server = gatt
         display_device_information()
+
+        set_output_buttons_enabled(true)
 
         var service = null
 
