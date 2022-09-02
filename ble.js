@@ -2,7 +2,7 @@ const module = (function () {
     var is_device_connected = false
     var characteristic_configuration = null
     var characteristic_output = null
-    var characteristic_output_sequence = 1
+    var characteristic_output_sequence = null
     var characteristic_input = null
     var expects_disconnect = false
     var gatt_server = null
@@ -33,7 +33,7 @@ const module = (function () {
 
     var sequence_digital_steps = []
 
-    var sequence_last_delay = 100
+    var sequence_last_delay = 1000
 
     var last_added_step = undefined
 
@@ -119,6 +119,15 @@ const module = (function () {
                 const result = await characteristic_output_sequence.writeValueWithResponse(new Uint8Array(packet))
                 console.log('written sequence...')
             }
+        }
+
+        if (characteristic_output_sequence.properties.notify) {
+            console.log('subscribing to sequence characteristic')
+            characteristic_output_sequence.addEventListener(
+                'characteristicvaluechanged',
+                handle_digital_output_sequence_characteristic_changed
+            )
+            await characteristic_output_sequence.startNotifications()
         }
     }
 
@@ -930,6 +939,28 @@ const module = (function () {
                 set_digital_inputs_text(e)
             }
         }
+    }
+
+    function handle_digital_output_sequence_characteristic_changed(event) {
+        const data = event.target.value
+        console.log(data)
+        if (data.byteLength != 9) {
+            throw ('misformated data from sequence')
+            return
+        }
+        const is_playing = (data.getUint8() == 0x01)
+        console.log('is_playing: ' + is_playing)
+
+        const children = $('#digital_output_sequence_steps').children()
+        for (const child of children) {
+            child.classList.remove('sequence-current')
+        }
+        if (!is_playing) {
+            return
+        }
+        const sequence_index = data.getUint32(1, true)
+        console.log('index: ' + sequence_index)
+        children[sequence_index].classList.add('sequence-current')
     }
 
     function handle_digital_output_sequence_characteristic(characteristic) {
