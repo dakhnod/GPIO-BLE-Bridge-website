@@ -17,7 +17,7 @@ const module = (function () {
             is_high: false
         }
     ]
-    output_pins = []
+    // output_pins = []
     var input_pins = [
         {
             is_high: false
@@ -542,7 +542,7 @@ const module = (function () {
 
             if (last_added_step != undefined && i == last_added_step) {
                 child.focus()
-                i = undefined
+                last_added_step = undefined
             }
 
             $('#action-add-after', child).click(i, (event) => {
