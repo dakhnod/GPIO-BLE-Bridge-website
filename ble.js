@@ -739,11 +739,11 @@ const module = (function () {
             const input_pin = input_pins[i]
 
             var label = '?'
-            if (input_pins.pin != undefined) {
-                label = input_pins.pin
+            if (input_pin.pin != undefined) {
+                label = input_pin.pin
             }
             var background_class = ''
-            if (input_pins.is_high) {
+            if (input_pin.is_high) {
                 background_class = 'pin-high'
             }
 
