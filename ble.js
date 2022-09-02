@@ -570,9 +570,10 @@ const module = (function () {
 
                 button.click(j, (event) => {
                     const states = step.states
-                    states[j] = !states[j]
+                    const index = event.data
+                    states[index] = !states[index]
                     console.log(step)
-                    if (states[j]) {
+                    if (states[index]) {
                         event.currentTarget.classList.add('pin-high')
                     } else {
                         event.currentTarget.classList.remove('pin-high')
