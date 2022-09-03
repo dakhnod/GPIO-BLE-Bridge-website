@@ -58,6 +58,8 @@ const module = (function () {
 
     var output_buttons_ignore = false
 
+    var should_auto_reconnect = false
+
     function init() {
         if (navigator.bluetooth == undefined) {
             //alert('your browser is not supported. Please chose one from the following compatibility matrix.')
@@ -128,14 +130,11 @@ const module = (function () {
         for (const packet of packets) {
             console.log(packet)
             if (characteristic_output_sequence != null) {
-                console.log('writing sequence...')
                 const result = await characteristic_output_sequence.writeValueWithResponse(new Uint8Array(packet))
-                console.log('written sequence...')
             }
         }
 
         if (characteristic_output_sequence.properties.notify) {
-            console.log('subscribing to sequence characteristic')
             characteristic_output_sequence.addEventListener(
                 'characteristicvaluechanged',
                 handle_digital_output_sequence_characteristic_changed
@@ -150,6 +149,7 @@ const module = (function () {
                 alert('GATT server not found. Please reload the page.')
                 return
             }
+            should_auto_reconnect = false
             await gatt_server.disconnect()
             return
         }
@@ -317,26 +317,40 @@ const module = (function () {
         set_device_status('sending configuration...')
     }
 
+    async function reconnect_to_device(device) {
+        var error = null
+        for (var i = 0; i < 10; i++) {
+            var message = 'connecting...'
+            if (i > 0) {
+                message += ` (attempt ${i}/9)`
+            }
+            set_device_status(message)
+            try {
+                await device.gatt.connect()
+                await on_bluetooth_gatt_connected(device.gatt)
+                return
+            } catch (e) {
+                console.error(e)
+                error = e
+            }
+        }
+        set_device_status(`connection failed: ${error}`)
+        handle_device_disconnect()
+    }
+
     function on_bluetooth_device_selected(device) {
         set_device_name(device.name)
-        set_device_status('connecting...')
 
         device.addEventListener('gattserverdisconnected', () => {
-            handle_device_disconnect()
+            handle_device_disconnect(device)
             if (expects_disconnect) {
                 alert('device rebooted. Please reconnect.')
             }
             expects_disconnect = false
         })
 
-        device.gatt.connect()
-            .then(on_bluetooth_gatt_connected)
-            .catch(on_bluetooth_gatt_connect_except)
-    }
-
-    function on_bluetooth_gatt_connect_except(error) {
-        console.error(error)
-        set_device_status(`connection failed: ${error}`)
+        should_auto_reconnect = true
+        reconnect_to_device(device)
     }
 
     function parse_pin_bits(index, bits) {
@@ -586,7 +600,7 @@ const module = (function () {
                 }
                 var button_html = `
                     <div class="button-pin button-pin-state" id="state-button">
-                        <span class="center">${label}</span>
+                        <span class="center noclick">${label}</span>
                     </div>`;
                 button_container.append(button_html)
 
@@ -600,7 +614,6 @@ const module = (function () {
                     const states = step.states
                     const index = event.data
                     states[index] = !states[index]
-                    console.log(step)
                     if (states[index]) {
                         event.currentTarget.classList.add('pin-high')
                     } else {
@@ -615,7 +628,6 @@ const module = (function () {
                 const delay = Number(event.target.value)
                 event.data.delay = delay
                 sequence_last_delay = delay
-                console.log(sequence_digital_steps)
             })
         }
     }
@@ -810,7 +822,7 @@ const module = (function () {
 
             var button_html = `
             <div class="button-pin button-output ${background_class}">
-                <span class="center">${label}</span>
+                <span class="center noclick">${label}</span>
             </div>
             `
 
@@ -838,7 +850,7 @@ const module = (function () {
 
             var button_html = `
             <div class="button-pin ${background_class}">
-                <span class="center">${label}</span>
+                <span class="center noclick">${label}</span>
             </div>
             `
             button_container.append(button_html)
@@ -868,7 +880,7 @@ const module = (function () {
         return states
     }
 
-    function handle_device_disconnect() {
+    function handle_device_disconnect(device) {
         // configured_pins = []
         // output_pins = []
         input_pins = []
@@ -890,6 +902,10 @@ const module = (function () {
         set_digital_outputs_text('Device not connected')
         set_digital_inputs_text('Device not connected')
         set_output_buttons_enabled(false)
+
+        if (should_auto_reconnect) {
+            reconnect_to_device(device)
+        }
     }
 
     async function handle_digital_output_characteristic(characteristic) {
@@ -1025,13 +1041,11 @@ const module = (function () {
 
     function handle_digital_output_sequence_characteristic_changed(event) {
         const data = event.target.value
-        console.log(data)
         if (data.byteLength != 9) {
             throw ('misformated data from sequence')
             return
         }
         const is_playing = (data.getUint8() == 0x01)
-        console.log('is_playing: ' + is_playing)
 
         const children = $('#digital_output_sequence_steps').children()
         for (const child of children) {
@@ -1041,7 +1055,6 @@ const module = (function () {
             return
         }
         const sequence_index = data.getUint32(1, true)
-        console.log('index: ' + sequence_index)
         children[sequence_index].classList.add('sequence-current')
     }
 
