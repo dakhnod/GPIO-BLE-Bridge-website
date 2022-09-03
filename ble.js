@@ -4,51 +4,11 @@ const module = (function () {
     var characteristic_output = null
     var characteristic_output_sequence = null
     var characteristic_input = null
-    var expects_disconnect = false
     var gatt_server = null
 
-    var configured_pins = [
-        {
-            pin: 0,
-            function: 'input',
-            pull: 'pullup',
-            invert: false
-        },
-        {
-            pin: 1,
-            function: 'output',
-            default_high: false,
-            invert: false
-        },
-        {
-            pin: 2,
-            function: 'disabled',
-            default_high: false,
-            invert: false
-        },
-    ]
-    configured_pins = []
-    var output_pins = [
-        {
-            is_high: false
-        },
-        {
-            is_high: false
-        }
-    ]
-    output_pins = []
-    var input_pins = [
-        {
-            is_high: false
-        },
-        {
-            is_high: false
-        },
-        {
-            is_high: true
-        },
-    ]
-    input_pins = []
+    var configured_pins = []
+    var output_pins = []
+    var input_pins = []
 
     var sequence_digital_steps = []
 
@@ -60,12 +20,14 @@ const module = (function () {
 
     var should_auto_reconnect = false
 
+    var last_current_sequence = null
+
     function init() {
         if (navigator.bluetooth == undefined) {
-            //alert('your browser is not supported. Please chose one from the following compatibility matrix.')
-            //document.location = 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API#browser_compatibility'
+            alert('your browser is not supported. Please chose one from the following compatibility matrix.')
+            document.location = 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API#browser_compatibility'
 
-            //return
+            return
         }
 
         $('#button_bluetooth_connect').click(on_bluetooth_button_connect_click)
@@ -308,12 +270,10 @@ const module = (function () {
             return
         }
 
-        expects_disconnect = true
         await characteristic_configuration.writeValueWithResponse(new Uint8Array(payload))
         // reset everything since pin count might change
         output_pins = []
         configured_pins = []
-        sequence_digital_steps = []
         set_device_status('sending configuration...')
     }
 
@@ -343,10 +303,6 @@ const module = (function () {
 
         device.addEventListener('gattserverdisconnected', () => {
             handle_device_disconnect(device)
-            if (expects_disconnect) {
-                alert('device rebooted. Please reconnect.')
-            }
-            expects_disconnect = false
         })
 
         should_auto_reconnect = true
@@ -595,7 +551,8 @@ const module = (function () {
             const button_container = $('#button-container', child)
             for (var j = 0; j < step.states.length; j++) {
                 var label = '?'
-                if (output_pins[j].pin != undefined) {
+                const output_pin = output_pins[j]
+                if (output_pin != undefined && output_pin.pin != undefined) {
                     label = output_pins[j].pin
                 }
                 var button_html = `
@@ -795,7 +752,6 @@ const module = (function () {
         } finally {
             set_output_buttons_enabled(true)
         }
-        // display_digital_outputs()
     }
 
     function set_output_buttons_enabled(enabled) {
@@ -892,6 +848,8 @@ const module = (function () {
 
         is_device_connected = false
         gatt_server = null
+
+        last_current_sequence = null
 
         display_digital_outputs()
         display_digital_inputs()
@@ -1048,14 +1006,17 @@ const module = (function () {
         const is_playing = (data.getUint8() == 0x01)
 
         const children = $('#digital_output_sequence_steps').children()
-        for (const child of children) {
-            child.classList.remove('sequence-current')
+        if (![undefined, null].includes(last_current_sequence)) {
+            last_current_sequence.classList.remove('sequence-current')
         }
         if (!is_playing) {
             return
         }
         const sequence_index = data.getUint32(1, true)
-        children[sequence_index].classList.add('sequence-current')
+        last_current_sequence = children[sequence_index]
+        if (![undefined, null].includes(last_current_sequence)) {
+            last_current_sequence.classList.add('sequence-current')
+        }
     }
 
     function handle_digital_output_sequence_characteristic(characteristic) {
@@ -1112,6 +1073,8 @@ const module = (function () {
             }
         }
 
+        const output_pin_count = output_pins.length
+
         if (output_pins.length == 0) {
             set_digital_outputs_text('No digital outputs configured')
         } else {
@@ -1123,6 +1086,18 @@ const module = (function () {
         } else {
             set_digital_inputs_text('')
         }
+
+        for (const step of sequence_digital_steps) {
+            if (step.states.length > output_pin_count) {
+                step.states.splice(output_pin_count)
+            } else {
+                while (step.states.length < output_pin_count) {
+                    step.states.push(false)
+                }
+            }
+        }
+
+        display_digital_sequence_steps()
     }
 
     function match_input_pins_to_configuration() {
