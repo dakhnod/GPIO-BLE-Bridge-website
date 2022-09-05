@@ -52,16 +52,15 @@ const module = (function () {
         display_connection_params_configuration()
     }
 
-    function display_connection_params_configuration(){
+    function display_connection_params_configuration() {
         const disable_inputs = characteristic_configuration_connection_parameters == null
 
         $('#button-send-conn-params-configuration').prop('disabled', disable_inputs)
-        $('.input-connection-params-config').each(function(_){
-            console.log(this)
-            // this.disabled = disable_inputs
+        $('.input-connection-params-config').each(function (_) {
+            this.disabled = disable_inputs
         })
 
-        if(characteristic_configuration_connection_parameters == null){
+        if (characteristic_configuration_connection_parameters == null) {
             $('#button-send-conn-params-configuration').text('Configuration service not found')
             return
         }
@@ -69,7 +68,7 @@ const module = (function () {
         $('#button-send-conn-params-configuration').text('Send configuration to device')
     }
 
-    function send_connection_parameters(event){
+    async function send_connection_parameters(event) {
         const min_interval = Number($('#input-min-conn-interval').val())
         const max_interval = Number($('#input-max-conn-interval').val())
         const slave_laterncy = Number($('#input-slave-latency').val())
@@ -86,42 +85,42 @@ const module = (function () {
 
         console.log(array.buffer)
 
-        if(characteristic_configuration_connection_parameters == null){
+        if (characteristic_configuration_connection_parameters == null) {
             throw 'Connection params characteristic not found'
         }
 
-        try{
+        try {
             event.target.disabled = true
             await characteristic_configuration_connection_parameters.writeValueWithResponse(array.buffer)
-        }catch(e){
+        } catch (e) {
             console.error(e)
-        }finally{
+        } finally {
             event.target.disabled = false
         }
     }
 
-    function init_connection_parameters(){
-        function check_min_conn_interval(interval){
-            if(interval < 8) throw 'Min connection interval too small'
-            if(interval > 4000) throw 'Min connection interval too big'
+    function init_connection_parameters() {
+        function check_min_conn_interval(interval) {
+            if (interval < 8) throw 'Min connection interval too small'
+            if (interval > 4000) throw 'Min connection interval too big'
         }
-        function check_max_conn_interval(interval){
-            if(interval < 8) throw 'Max connection interval too small'
-            if(interval > 4000) throw 'Max connection interval too big'
+        function check_max_conn_interval(interval) {
+            if (interval < 8) throw 'Max connection interval too small'
+            if (interval > 4000) throw 'Max connection interval too big'
         }
-        function check_slave_latency(slave_laterncy){
-            if(slave_laterncy > 499) throw 'Slave latency too big'
+        function check_slave_latency(slave_laterncy) {
+            if (slave_laterncy > 499) throw 'Slave latency too big'
         }
-        function check_supervision_timeout(timeout){
-            if(timeout < 100) throw 'Supervision timeout too small'
-            if(timeout > 32000) throw 'Supervision timeout too big'
+        function check_supervision_timeout(timeout) {
+            if (timeout < 100) throw 'Supervision timeout too small'
+            if (timeout > 32000) throw 'Supervision timeout too big'
         }
-        function check_advertising_interval(interval){
-            if(interval < 20) throw 'Advertising interval too small'
-            if(interval > 1024) throw 'Advertising interval too big'
+        function check_advertising_interval(interval) {
+            if (interval < 20) throw 'Advertising interval too small'
+            if (interval > 1024) throw 'Advertising interval too big'
         }
 
-        function check_connection_intervals(_){
+        function check_connection_intervals(_) {
             const min_interval = Number($('#input-min-conn-interval').val())
             const max_interval = Number($('#input-max-conn-interval').val())
             const slave_laterncy = Number($('#input-slave-latency').val())
@@ -133,64 +132,64 @@ const module = (function () {
             var encountered_advertising_error = false
 
 
-            try{
+            try {
                 check_advertising_interval(advertising_interval)
                 $('#error-advertising-interval').text('')
-            }catch(e){
+            } catch (e) {
                 $('#error-advertising-interval').text(e)
                 encountered_advertising_error = true
             }
 
-            try{
+            try {
                 check_min_conn_interval(min_interval)
                 $('#error-min-conn-interval').text('')
-            }catch(e){
+            } catch (e) {
                 $('#error-min-conn-interval').text(e)
                 encountered_interval_error = true
             }
 
-            try{
+            try {
                 check_max_conn_interval(max_interval)
                 $('#error-max-conn-interval').text('')
-            }catch(e){
+            } catch (e) {
                 $('#error-max-conn-interval').text(e)
                 encountered_interval_error = true
             }
 
-            try{
+            try {
                 check_slave_latency(slave_laterncy)
                 $('#error-slave-latency').text('')
-            }catch(e){
+            } catch (e) {
                 $('#error-slave-latency').text(e)
                 encountered_supervision_error = true
             }
 
-            try{
+            try {
                 check_supervision_timeout(supervision_timeout)
                 $('#error-supervision-timeout').text('')
-            }catch(e){
+            } catch (e) {
                 $('#error-supervision-timeout').text(e)
                 encountered_supervision_error = true
             }
 
-            if(!encountered_interval_error){
-                if(min_interval > max_interval){
+            if (!encountered_interval_error) {
+                if (min_interval > max_interval) {
                     $('#error-min-conn-interval').text('Min interval needs to be bigger than Max interval')
                     $('#error-max-conn-interval').text('Max interval needs to be bigger than Min interval')
                     encountered_interval_error = true
-                }else{
+                } else {
                     $('#error-min-conn-interval').text('')
                     $('#error-max-conn-interval').text('')
                 }
             }
 
-            if(!encountered_supervision_error){
-                const min_supervision_timeout = max_interval * (slave_laterncy + 1)
+            if (!encountered_supervision_error) {
+                const min_supervision_timeout = (max_interval * 2) * (slave_laterncy + 1)
                 console.log(min_supervision_timeout)
-                if(supervision_timeout <= min_supervision_timeout){
+                if (supervision_timeout <= min_supervision_timeout) {
                     $('#error-supervision-timeout').text(`Supervision smaller than ${min_supervision_timeout + 1}`)
                     encountered_supervision_error = true
-                }else{
+                } else {
                     $('#error-supervision-timeout').text('')
                 }
             }
@@ -455,6 +454,7 @@ const module = (function () {
                 error = e
             }
         }
+        should_auto_reconnect = false
         set_device_status(`connection failed: ${error}`)
         handle_device_disconnect()
     }
@@ -1024,7 +1024,7 @@ const module = (function () {
         set_digital_inputs_text('Device not connected')
         set_output_buttons_enabled(false)
 
-        if (should_auto_reconnect) {
+        if (should_auto_reconnect && device != undefined) {
             reconnect_to_device(device)
         }
     }
@@ -1069,6 +1069,7 @@ const module = (function () {
             }
         }
 
+        set_output_buttons_enabled(true)
         match_output_pins_to_configuration()
         display_digital_outputs()
     }
@@ -1210,8 +1211,6 @@ const module = (function () {
         gatt_server = gatt
         display_device_information()
 
-        set_output_buttons_enabled(true)
-
         var service = null
 
         try {
@@ -1223,7 +1222,13 @@ const module = (function () {
             return
         }
 
-        const characteristics = await service.getCharacteristics()
+        var characteristics = []
+
+        try {
+            characteristics = await service.getCharacteristics()
+        } catch (e) {
+            console.error('no IO characteristics found in device')
+        }
 
         for (const characteristic of characteristics) {
             const uuid = characteristic.uuid
@@ -1237,15 +1242,15 @@ const module = (function () {
         try {
             const service_configuration = await gatt.getPrimaryService('9c100000-5cf1-8fa7-1549-01fdc1d171dc')
 
-            for(const characteristic of await service_configuration.getCharacteristics()){
+            for (const characteristic of await service_configuration.getCharacteristics()) {
                 const uuid = characteristic.uuid
                 if (uuid == '9c100001-5cf1-8fa7-1549-01fdc1d171dc') {
                     await handle_pin_configuration_characteristic(characteristic)
-                } else if(uuid == '9c100002-5cf1-8fa7-1549-01fdc1d171dc') {
+                } else if (uuid == '9c100002-5cf1-8fa7-1549-01fdc1d171dc') {
                     await handle_connection_params_characteristic(characteristic)
                 }
             }
-        }catch(e){
+        } catch (e) {
             console.log(e)
         }
 
@@ -1331,17 +1336,29 @@ const module = (function () {
         const result = await characteristic_configuration_connection_parameters.readValue()
         console.log(result)
 
-        const min_connection_interval = result.getUint16(0, true)
-        const max_connection_interval = result.getUint16(1, true)
-        const slave_latency = result.getUint16(2, true)
-        const supervision_timeout = result.getUint16(3, true)
-        const advertising_interval = result.getUint16(4, true)
+        const array = new Uint16Array(result.buffer)
 
-        $('#input-min-conn-interval').val(min_connection_interval)
-        $('#input-max-conn-interval').val(max_connection_interval)
-        $('#input-slave-latency').val(slave_latency)
-        $('#input-supervision-timeout').val(supervision_timeout)
-        $('#input-advertising-interval').val(advertising_interval)
+        const min_connection_interval = array[0]
+        const max_connection_interval = array[1]
+        const slave_latency = array[2]
+        const supervision_timeout = array[3]
+        const advertising_interval = array[4]
+
+        if (min_connection_interval != 0xffff) {
+            $('#input-min-conn-interval').val(min_connection_interval)
+        }
+        if (max_connection_interval != 0xffff) {
+            $('#input-max-conn-interval').val(max_connection_interval)
+        }
+        if (slave_latency != 0xffff) {
+            $('#input-slave-latency').val(slave_latency)
+        }
+        if (supervision_timeout != 0xffff) {
+            $('#input-supervision-timeout').val(supervision_timeout)
+        }
+        if (advertising_interval != 0xffff) {
+            $('#input-advertising-interval').val(advertising_interval)
+        }
     }
 
     function set_device_status(status) {
