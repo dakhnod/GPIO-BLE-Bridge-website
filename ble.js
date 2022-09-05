@@ -69,6 +69,10 @@ const module = (function () {
     }
 
     async function send_connection_parameters(event) {
+        if (!check_connection_intervals(event)) {
+            // sanity check failed
+            return
+        }
         const min_interval = Number($('#input-min-conn-interval').val())
         const max_interval = Number($('#input-max-conn-interval').val())
         const slave_laterncy = Number($('#input-slave-latency').val())
@@ -99,106 +103,110 @@ const module = (function () {
         }
     }
 
-    function init_connection_parameters() {
-        function check_min_conn_interval(interval) {
-            if (interval < 8) throw 'Min connection interval too small'
-            if (interval > 4000) throw 'Min connection interval too big'
-        }
-        function check_max_conn_interval(interval) {
-            if (interval < 8) throw 'Max connection interval too small'
-            if (interval > 4000) throw 'Max connection interval too big'
-        }
-        function check_slave_latency(slave_laterncy) {
-            if (slave_laterncy > 499) throw 'Slave latency too big'
-        }
-        function check_supervision_timeout(timeout) {
-            if (timeout < 100) throw 'Supervision timeout too small'
-            if (timeout > 32000) throw 'Supervision timeout too big'
-        }
-        function check_advertising_interval(interval) {
-            if (interval < 20) throw 'Advertising interval too small'
-            if (interval > 1024) throw 'Advertising interval too big'
+    function check_min_conn_interval(interval) {
+        if (interval < 8) throw 'Min connection interval too small'
+        if (interval > 4000) throw 'Min connection interval too big'
+    }
+    function check_max_conn_interval(interval) {
+        if (interval < 8) throw 'Max connection interval too small'
+        if (interval > 4000) throw 'Max connection interval too big'
+    }
+    function check_slave_latency(slave_laterncy) {
+        if (slave_laterncy > 499) throw 'Slave latency too big'
+    }
+    function check_supervision_timeout(timeout) {
+        if (timeout < 100) throw 'Supervision timeout too small'
+        if (timeout > 32000) throw 'Supervision timeout too big'
+    }
+    function check_advertising_interval(interval) {
+        if (interval < 20) throw 'Advertising interval too small'
+        if (interval > 1024) throw 'Advertising interval too big'
+    }
+
+    function check_connection_intervals(event) {
+        const min_interval = Number($('#input-min-conn-interval').val())
+        const max_interval = Number($('#input-max-conn-interval').val())
+        const slave_laterncy = Number($('#input-slave-latency').val())
+        const supervision_timeout = Number($('#input-supervision-timeout').val())
+        const advertising_interval = Number($('#input-advertising-interval').val())
+
+        var encountered_interval_error = false
+        var encountered_supervision_error = false
+        var encountered_advertising_error = false
+
+
+        try {
+            check_advertising_interval(advertising_interval)
+            $('#error-advertising-interval').text('')
+        } catch (e) {
+            $('#error-advertising-interval').text(e)
+            encountered_advertising_error = true
         }
 
-        function check_connection_intervals(_) {
-            const min_interval = Number($('#input-min-conn-interval').val())
-            const max_interval = Number($('#input-max-conn-interval').val())
-            const slave_laterncy = Number($('#input-slave-latency').val())
-            const supervision_timeout = Number($('#input-supervision-timeout').val())
-            const advertising_interval = Number($('#input-advertising-interval').val())
+        try {
+            check_min_conn_interval(min_interval)
+            $('#error-min-conn-interval').text('')
+        } catch (e) {
+            $('#error-min-conn-interval').text(e)
+            encountered_interval_error = true
+        }
 
-            var encountered_interval_error = false
-            var encountered_supervision_error = false
-            var encountered_advertising_error = false
+        try {
+            check_max_conn_interval(max_interval)
+            $('#error-max-conn-interval').text('')
+        } catch (e) {
+            $('#error-max-conn-interval').text(e)
+            encountered_interval_error = true
+        }
 
+        try {
+            check_slave_latency(slave_laterncy)
+            $('#error-slave-latency').text('')
+        } catch (e) {
+            $('#error-slave-latency').text(e)
+            encountered_supervision_error = true
+        }
 
-            try {
-                check_advertising_interval(advertising_interval)
-                $('#error-advertising-interval').text('')
-            } catch (e) {
-                $('#error-advertising-interval').text(e)
-                encountered_advertising_error = true
-            }
+        try {
+            check_supervision_timeout(supervision_timeout)
+            $('#error-supervision-timeout').text('')
+        } catch (e) {
+            $('#error-supervision-timeout').text(e)
+            encountered_supervision_error = true
+        }
 
-            try {
-                check_min_conn_interval(min_interval)
+        if (!encountered_interval_error) {
+            if (min_interval > max_interval) {
+                $('#error-min-conn-interval').text('Min interval needs to be bigger than Max interval')
+                $('#error-max-conn-interval').text('Max interval needs to be bigger than Min interval')
+                encountered_interval_error = true
+            } else {
                 $('#error-min-conn-interval').text('')
-            } catch (e) {
-                $('#error-min-conn-interval').text(e)
-                encountered_interval_error = true
-            }
-
-            try {
-                check_max_conn_interval(max_interval)
                 $('#error-max-conn-interval').text('')
-            } catch (e) {
-                $('#error-max-conn-interval').text(e)
-                encountered_interval_error = true
             }
-
-            try {
-                check_slave_latency(slave_laterncy)
-                $('#error-slave-latency').text('')
-            } catch (e) {
-                $('#error-slave-latency').text(e)
-                encountered_supervision_error = true
-            }
-
-            try {
-                check_supervision_timeout(supervision_timeout)
-                $('#error-supervision-timeout').text('')
-            } catch (e) {
-                $('#error-supervision-timeout').text(e)
-                encountered_supervision_error = true
-            }
-
-            if (!encountered_interval_error) {
-                if (min_interval > max_interval) {
-                    $('#error-min-conn-interval').text('Min interval needs to be bigger than Max interval')
-                    $('#error-max-conn-interval').text('Max interval needs to be bigger than Min interval')
-                    encountered_interval_error = true
-                } else {
-                    $('#error-min-conn-interval').text('')
-                    $('#error-max-conn-interval').text('')
-                }
-            }
-
-            if (!encountered_supervision_error) {
-                const min_supervision_timeout = (max_interval * 2) * (slave_laterncy + 1)
-                console.log(min_supervision_timeout)
-                if (supervision_timeout <= min_supervision_timeout) {
-                    $('#error-supervision-timeout').text(`Supervision smaller than ${min_supervision_timeout + 1}`)
-                    encountered_supervision_error = true
-                } else {
-                    $('#error-supervision-timeout').text('')
-                }
-            }
-
-            var encountered_error = encountered_interval_error || encountered_supervision_error || encountered_advertising_error
-            encountered_error |= (characteristic_configuration_connection_parameters == null)
-            $('#button-send-conn-params-configuration').prop('disabled', encountered_error)
         }
 
+        var min_supervision_timeout = ((max_interval * 2) * (slave_laterncy + 1)) + 10
+        min_supervision_timeout = Math.max(100, min_supervision_timeout)
+        $('#input-supervision-timeout-label').text(`Supervision timeout (ms) (min. ${min_supervision_timeout})`)
+        if (!['input-supervision-timeout', 'button-send-conn-params-configuration'].includes(event.target.id)) {
+            $('#input-supervision-timeout').val(min_supervision_timeout)
+            $('#error-supervision-timeout').text('')
+        } else if (!encountered_supervision_error && supervision_timeout < min_supervision_timeout) {
+            $('#error-supervision-timeout').text(`Supervision smaller than ${min_supervision_timeout}`)
+            encountered_supervision_error = true
+        } else if (!encountered_supervision_error) {
+            $('#error-supervision-timeout').text('')
+        }
+
+        var encountered_error = encountered_interval_error || encountered_supervision_error || encountered_advertising_error
+        encountered_error ||= (characteristic_configuration_connection_parameters == null)
+        $('#button-send-conn-params-configuration').prop('disabled', encountered_error)
+
+        return !encountered_error
+    }
+
+    function init_connection_parameters() {
         $('#input-min-conn-interval').change(check_connection_intervals)
         $('#input-max-conn-interval').change(check_connection_intervals)
         $('#input-slave-latency').change(check_connection_intervals)
@@ -1025,7 +1033,7 @@ const module = (function () {
         set_output_buttons_enabled(false)
 
         if (should_auto_reconnect && device != undefined) {
-            reconnect_to_device(device)
+            setTimeout(reconnect_to_device, 3000, device)
         }
     }
 

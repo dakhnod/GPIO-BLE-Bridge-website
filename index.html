@@ -189,20 +189,20 @@
         <div class="row segment">
             <div class="col">
                 <div>
-                    <h2>Coonection parameters configuration</h2>
+                    <h2>Connection parameters configuration</h2>
                     <button class="btn btn-primary w-100" id="button-send-conn-params-configuration" disabled>Device not
                         connected</button>
                 </div>
 
                 <div class="d-flex flex-wrap" id="connection-parameters-config">
                     <div class="form-group m-2">
-                        <label for="input-min-conn-interval">Min connection interval</label>
+                        <label for="input-min-conn-interval">Min connection interval (ms)</label>
                         <span class="text-danger d-block" id="error-min-conn-interval"></span>
                         <input class="form-control input-connection-params-config" type="number"
                             id="input-min-conn-interval">
                     </div>
                     <div class="form-group m-2">
-                        <label for="input-max-conn-interval">Max connection interval</label>
+                        <label for="input-max-conn-interval">Max connection interval (ms)</label>
                         <span class="text-danger d-block" id="error-max-conn-interval"></span>
                         <input class="form-control input-connection-params-config" type="number"
                             id="input-max-conn-interval">
@@ -214,13 +214,14 @@
                             id="input-slave-latency">
                     </div>
                     <div class="form-group m-2">
-                        <label for="input-supervision-timeout">Supervision timeout</label>
+                        <label for="input-supervision-timeout" id="input-supervision-timeout-label">Supervision
+                            timeout (ms)</label>
                         <span class="text-danger d-block" id="error-supervision-timeout"></span>
                         <input class="form-control input-connection-params-config" type="number"
                             id="input-supervision-timeout">
                     </div>
                     <div class="form-group m-2">
-                        <label for="input-advertising-interval">Advertising interval</label>
+                        <label for="input-advertising-interval">Advertising interval (ms)</label>
                         <span class="text-danger d-block" id="error-advertising-interval"></span>
                         <input class="form-control input-connection-params-config" type="number"
                             id="input-advertising-interval">
