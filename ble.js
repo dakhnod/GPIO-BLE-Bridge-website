@@ -8,10 +8,45 @@ const module = (function () {
     var gatt_server = null
 
     var configured_pins = []
-    var output_pins = []
+    var output_digital_pins = []
+    var output_analog_pins = [
+        {
+            pin: 1,
+            value: 1000
+        },
+        {
+            pin: 2,
+            value: 1000
+        }
+    ]
     var input_pins = []
 
-    var sequence_digital_steps = []
+    var sequence_digital_steps = [
+        {
+            states: [false, false, true],
+            output_analog_values: [
+                2000,
+                undefined,
+            ],
+            delay: 1000
+        },
+        {
+            states: [false, false, true],
+            output_analog_values: [
+                undefined,
+                undefined,
+            ],
+            delay: 1000
+        },
+        {
+            states: [false, false, true],
+            output_analog_values: [
+                undefined,
+                undefined,
+            ],
+            delay: 1000
+        }
+    ]
 
     var sequence_last_delay = 1000
 
@@ -34,9 +69,9 @@ const module = (function () {
         $('#button_bluetooth_connect').click(on_bluetooth_button_connect_click)
 
         $('#button_send_configuration').click(on_button_send_configuraion_click)
-        $('#button_sequence_digital_send').click(on_sequence_digital_send_click)
+        $('#button-sequence-digital-send').click(on_sequence_digital_send_click)
         $('#button-send-conn-params-configuration').click(send_connection_parameters)
-        $('#button_sequence_add_step').click((_) => {
+        $('#button-sequence-add-step').click((_) => {
             insert_step(0)
         })
 
@@ -44,8 +79,9 @@ const module = (function () {
 
         window.ble = this
 
-        display_digital_outputs()
-        display_digital_inputs()
+        display_outputs_digital()
+        display_outputs_analog()
+        display_inputs_digital()
         display_device_information()
         display_digital_sequence_steps()
         display_pin_configuration_menu()
@@ -225,9 +261,11 @@ const module = (function () {
         }
 
         const unfiltered_states = sequence_digital_steps.map(step => step.states)
+        const unfiltered_output_analog_values = sequence_digital_steps.map(step => step.output_analog_values)
         const filtered_states = filter_states(unfiltered_states)
+        const filtered_output_analog_values = filter_states(unfiltered_output_analog_values)
 
-        var repetitions = $('#sequence_repetition_count').val()
+        var repetitions = $('#sequence-repetition-count').val()
         if (repetitions == '') {
             repetitions = 1
         } else {
@@ -240,8 +278,11 @@ const module = (function () {
 
         for (var i = 0; i < filtered_states.length; i++) {
             data.push(...encode_states(filtered_states[i]))
+            data.push(...encode_analog_values(filtered_output_analog_values[i]))
             data.push(...encode_varint(sequence_digital_steps[i].delay))
         }
+
+        console.log(data)
 
         const max_packet_length = 19
 
@@ -351,6 +392,12 @@ const module = (function () {
         return bytes
     }
 
+    function encode_analog_values(analog_values){
+        analog_values = analog_values.map(value => (value == undefined) ? 0xffff : value)
+        const array = new Uint16Array(analog_values)
+        return new Uint8Array(array.buffer)
+    }
+
     function encode_varint(number) {
         var bits_needed = 1
         if (number != 0) {
@@ -389,7 +436,9 @@ const module = (function () {
 
         if (pin.function == 'output') {
             byte = 0b0000
-            if (pin.default_high) {
+            if(pin.function_output == 'analog'){
+                byte |= 0b0100
+            }else if (pin.default_high) {
                 byte |= 0b0010
             }
         } else if (pin.function == 'input') {
@@ -442,7 +491,7 @@ const module = (function () {
 
         await characteristic_configuration_pins.writeValueWithResponse(new Uint8Array(payload))
         // reset everything since pin count might change
-        output_pins = []
+        output_digital_pins = []
         configured_pins = []
         set_device_status('sending configuration...')
     }
@@ -480,7 +529,7 @@ const module = (function () {
         reconnect_to_device(device)
     }
 
-    function parse_pin_bits(index, bits) {
+    function decode_pin_bits(index, bits) {
         if (bits == 0b1111) {
             return {
                 pin: index,
@@ -489,11 +538,15 @@ const module = (function () {
         }
         if ((bits & 0b1000) == 0b0000) {
             // handling output pin
-            return {
+            var pin = {
                 pin: index,
                 function: 'output',
-                default_high: ((bits & 0b0010) == 0b0010),
+                function_output: 'analog',
                 invert: ((bits & 0b0001) == 0b0001)
+            }
+            if((bits & 0b0100) == 0b0000){
+                pin.function_output = 'digital',
+                pin.default_high = ((bits & 0b0010) == 0b0010)
             }
         }
 
@@ -542,8 +595,8 @@ const module = (function () {
 
         const button_configuration_send = $('#button_send_configuration')
 
-        const button_sequence_digital_send = $('#button_sequence_digital_send')
-        const button_sequence_ditital_add = $('#button_sequence_add_step')
+        const button_sequence_digital_send = $('#button-sequence-digital-send')
+        const button_sequence_ditital_add = $('#button-sequence-add-step')
 
         if (!is_device_connected) {
             set_device_status('not connected')
@@ -559,7 +612,7 @@ const module = (function () {
                 button.prop('disabled', true)
             }
 
-            if (output_pins == []) {
+            if (output_digital_pins == []) {
                 button_sequence_ditital_add.prop('disabled', true)
             }
             return
@@ -660,7 +713,7 @@ const module = (function () {
 
     function insert_step(index) {
         const step = {
-            states: Array(output_pins.length).fill(false),
+            states: Array(output_digital_pins.length).fill(false),
             delay: sequence_last_delay
         }
         sequence_digital_steps.splice(index, 0, step)
@@ -669,13 +722,13 @@ const module = (function () {
     }
 
     function display_digital_sequence_steps() {
-        const steps_container = $('#digital_output_sequence_steps')
+        const steps_container = $('#digital-output-sequence-steps')
         steps_container.empty()
 
         if (sequence_digital_steps.length == 0) {
-            $('#button_sequence_add_step').show()
+            $('#button-sequence-add-step').show()
         } else {
-            $('#button_sequence_add_step').hide()
+            $('#button-sequence-add-step').hide()
         }
 
         for (var i = 0; i < sequence_digital_steps.length; i++) {
@@ -683,22 +736,75 @@ const module = (function () {
 
             const step_html = `
             <div class="sequence-container">
-                    <div class="d-flex button-container" id="button-container">
-                    </div>
-                    <div class="form-group">
-                        <label for="delay">delay: </label>
-                        <input type="number" class="form-control" id="input-delay" value="${step.delay}">
-                    </div>
-                    <div class="d-flex sequence-action-container">
-                        <img src="add-before.png" class="sequence-action-button" id="action-add-before"/>
-                        <img src="add-after.png" class="sequence-action-button" id="action-add-after"/>
-                        <img src="remove.png" class="sequence-action-button" id="action-delete"/>
-                    </div>
+                <div class="d-flex button-container" id="button-container">
                 </div>
+
+                <div class="form-group">
+                    <label for="delay">delay (ms): </label>
+                    <input type="number" class="form-control" id="input-delay" value="${step.delay}">
+                </div>
+            </div>
             `
+
+
             steps_container.append(step_html)
 
             const child = steps_container.children().last()
+
+            for(var j = 0; j < output_analog_pins.length; j++){
+                const pin = output_analog_pins[j]
+                var label = '?'
+
+                if(pin.pin != undefined){
+                    label = pin.pin
+                }
+
+                var value = ''
+                if(step.output_analog_values[j] != undefined){
+                    value = step.output_analog_values[j]
+                }
+
+                const analog_html = `
+                <div class="form-group">
+                    <label for="pwm-duty-cycle">Pin ${label} duty cycle (us)</label>
+                    <input class="form-control" type="number" id="pwm-duty-cycle" value="${value}">
+                </div>`
+
+                child.append(analog_html)
+
+                const current_value_index = j
+
+                const form = child.children().last()
+                $('#pwm-duty-cycle', form).on('input', event => {
+                    const input = event.currentTarget
+                    const value = input.value
+                    if(value == ''){
+                        step.output_analog_values[current_value_index] = undefined
+                        return
+                    }
+                    var duty_cycle = Number(value)
+                    if(duty_cycle < 0){
+                        duty_cycle = 0
+                        input.value = duty_cycle
+                    }else if(duty_cycle > 20000){
+                        duty_cycle = 20000
+                        input.value = duty_cycle
+                    }
+
+                    step.output_analog_values[current_value_index] = duty_cycle
+                    console.log(sequence_digital_steps)
+
+                })
+            }
+
+            const action_buttons_html = `
+            <div class="d-flex sequence-action-container">
+                <img src="add-before.png" class="sequence-action-button" id="action-add-before"/>
+                <img src="add-after.png" class="sequence-action-button" id="action-add-after"/>
+                <img src="remove.png" class="sequence-action-button" id="action-delete"/>
+            </div>`
+
+            child.append(action_buttons_html)
 
             if (last_added_step != undefined && i == last_added_step) {
                 child.focus()
@@ -722,11 +828,11 @@ const module = (function () {
             const button_container = $('#button-container', child)
             for (var j = 0; j < step.states.length; j++) {
                 var label = '?'
-                const output_pin = output_pins[j]
+                const output_pin = output_digital_pins[j]
                 if (output_pin != undefined && output_pin.pin != undefined) {
-                    label = output_pins[j].pin
+                    label = output_pin.pin
                 }
-                var button_html = `
+                const button_html = `
                     <div class="button-pin button-pin-state" id="state-button">
                         <span class="center noclick">${label}</span>
                     </div>`;
@@ -819,6 +925,10 @@ const module = (function () {
                 { value: 'output', label: 'Output' },
                 { value: 'input', label: 'Input' }
             ]
+            const functions_output = [
+                { value: 'digital', label: 'Digital' },
+                { value: 'analog', label: 'Analog' }
+            ]
             const invert = [
                 { value: false, label: 'Not invert' },
                 { value: true, label: 'Invert' }
@@ -844,13 +954,16 @@ const module = (function () {
 
             create_pin_configuration_dropdown(container, pin, 'function', functions)
             if (pin.function != 'disabled') {
-                create_pin_configuration_dropdown(container, pin, 'invert', invert)
-
                 if (pin.function == 'input') {
                     create_pin_configuration_dropdown(container, pin, 'pull', pulls)
                 } else {
-                    create_pin_configuration_dropdown(container, pin, 'default_high', default_high)
+                    create_pin_configuration_dropdown(container, pin, 'function_output', functions_output)
+                    if(pin.function_output != 'analog'){
+                        create_pin_configuration_dropdown(container, pin, 'default_high', default_high)
+                    }
                 }
+
+                create_pin_configuration_dropdown(container, pin, 'invert', invert)
             }
         }
 
@@ -869,8 +982,8 @@ const module = (function () {
         for (var i = 0; i < bytes.length; i++) {
             const byte = bytes[i]
 
-            configured_pins.push(parse_pin_bits(pin_count - ((i * 2) + 0) - 1, (byte >> 4) & 0b1111))
-            configured_pins.push(parse_pin_bits(pin_count - ((i * 2) + 1) - 1, (byte >> 0) & 0b1111))
+            configured_pins.push(decode_pin_bits(pin_count - ((i * 2) + 0) - 1, (byte >> 4) & 0b1111))
+            configured_pins.push(decode_pin_bits(pin_count - ((i * 2) + 1) - 1, (byte >> 0) & 0b1111))
         }
 
         configured_pins = configured_pins.reverse()
@@ -879,8 +992,8 @@ const module = (function () {
 
         match_output_pins_to_configuration()
         match_input_pins_to_configuration()
-        display_digital_outputs()
-        display_digital_inputs()
+        display_outputs_digital()
+        display_inputs_digital()
 
         display_pin_configuration_menu(configured_pins)
         display_device_information();
@@ -894,7 +1007,7 @@ const module = (function () {
             throw 'Digital output characteristic not present'
         }
 
-        const states = Array(output_pins.length).fill(undefined)
+        const states = Array(output_digital_pins.length).fill(undefined)
         states[index] = state
 
         const payload = encode_states(states)
@@ -908,7 +1021,7 @@ const module = (function () {
         }
 
         const index = event.data
-        const pin = output_pins[index]
+        const pin = output_digital_pins[index]
         pin.is_high = !pin.is_high
         if (pin.is_high) {
             event.target.classList.add('pin-high')
@@ -917,7 +1030,7 @@ const module = (function () {
         }
         try {
             set_output_buttons_enabled(false)
-            await send_digital_output_pin(index, output_pins[index].is_high)
+            await send_digital_output_pin(index, pin.is_high)
         } catch (e) {
             set_digital_outputs_text(e)
         } finally {
@@ -932,11 +1045,11 @@ const module = (function () {
         }
     }
 
-    function display_digital_outputs() {
+    function display_outputs_digital() {
         const button_container = $('#digital_output_buttons')
         button_container.empty()
-        for (var i = 0; i < output_pins.length; i++) {
-            const output_pin = output_pins[i]
+        for (var i = 0; i < output_digital_pins.length; i++) {
+            const output_pin = output_digital_pins[i]
 
             var label = '?'
             if (output_pin.pin != undefined) {
@@ -947,7 +1060,7 @@ const module = (function () {
                 background_class = 'pin-high'
             }
 
-            var button_html = `
+            const button_html = `
             <div class="button-pin button-output ${background_class}">
                 <span class="center noclick">${label}</span>
             </div>
@@ -959,8 +1072,57 @@ const module = (function () {
         }
     }
 
+    function display_outputs_analog(){
+        const container = $('#outputs-analog-container')
+        container.empty()
+        for(const pin of output_analog_pins){
+            var label = '?'
+            var value = ''
 
-    function display_digital_inputs() {
+            if(pin.pin != undefined){
+                label = pin.pin
+            }
+            if(pin.value != undefined){
+                value = pin.value
+            }
+
+            const pin_html = `
+            <div class="pin-configuration-container">
+                <h3>Pin ${label}</h3>
+                <div class="form-group">
+                    <label for="pwm-duty-cycle">Duty cycle (0us - 20000us)</label>
+                    <input class="form-control" type="number" id="pwm-duty-cycle" value="${value}">
+                    <button class="btn btn-primary w-100 mt-3" id="value-send">Send value</button>
+                </div>
+            </div>`
+            container.append(pin_html)
+
+            const child = container.children().last()[0]
+
+            const button = $('#value-send', child)
+            const edit_value = $('#pwm-duty-cycle', child)
+
+            button.click(async function(event) {
+                const value = edit_value.val()
+                console.log(value)
+                if(value == ''){
+                    return
+                }
+
+                if(pin.output_analog_characteristic == undefined){
+                    throw 'could not find analog output characteristic'
+                }
+
+                const payload = Uint16Array(1)
+                payload[0] = Number(value)
+
+                await pin.output_analog_characteristic.writeValueWithResponse(payload.buffer)
+            })
+        }
+    }
+
+
+    function display_inputs_digital() {
         const button_container = $('#digital_input_buttons')
         button_container.empty()
         for (var i = 0; i < input_pins.length; i++) {
@@ -975,7 +1137,7 @@ const module = (function () {
                 background_class = 'pin-high'
             }
 
-            var button_html = `
+            const button_html = `
             <div class="button-pin ${background_class}">
                 <span class="center noclick">${label}</span>
             </div>
@@ -1009,7 +1171,7 @@ const module = (function () {
 
     function handle_device_disconnect(device) {
         // configured_pins = []
-        // output_pins = []
+        // output_digital_pins = []
         input_pins = []
 
         characteristic_configuration_pins = null
@@ -1023,8 +1185,9 @@ const module = (function () {
 
         last_current_sequence = null
 
-        display_digital_outputs()
-        display_digital_inputs()
+        display_outputs_digital()
+        display_outputs_analog()
+        display_inputs_digital()
         display_pin_configuration_menu()
         display_device_information()
         display_digital_sequence_steps()
@@ -1058,10 +1221,10 @@ const module = (function () {
             throw 'Too few output pins'
         }
 
-        output_pins = []
+        output_digital_pins = []
 
         for (var i = 0; i < output_count; i++) {
-            output_pins.push({
+            output_digital_pins.push({
                 is_high: false
             })
         }
@@ -1075,13 +1238,13 @@ const module = (function () {
                 if (decoded.is_high == undefined) {
                     continue
                 }
-                output_pins[decoded.index].is_high = decoded.is_high
+                output_digital_pins[decoded.index].is_high = decoded.is_high
             }
         }
 
         set_output_buttons_enabled(true)
         match_output_pins_to_configuration()
-        display_digital_outputs()
+        display_outputs_digital()
     }
 
     async function handle_digital_input_characteristic(characteristic) {
@@ -1151,7 +1314,28 @@ const module = (function () {
         }
 
         match_input_pins_to_configuration()
-        display_digital_inputs()
+        display_inputs_digital()
+    }
+
+    async function handle_output_analog_characteristic(characteristic){
+        const analog_pin = {
+            output_analog_characteristic: characteristic
+        }
+        if(characteristic.properties.read){
+            const response = await characteristic.readValue()
+            if(response.byteLength != 2){
+                throw 'Analog characteristic value is not size 2'
+            }
+            analog_pin.value = response.getUint16(0, true)
+        }
+        output_analog_pins.push(analog_pin)
+    }
+
+    async function handle_analog_characteristic(characteristic) {
+        const is_output = characteristic.properties.write
+        if(is_output){
+            await handle_output_analog_characteristic(characteristic)
+        }
     }
 
     async function handle_digital_characteristic(characteristic) {
@@ -1179,7 +1363,7 @@ const module = (function () {
         }
         const is_playing = (data.getUint8() == 0x01)
 
-        const children = $('#digital_output_sequence_steps').children()
+        const children = $('#digital-output-sequence-steps').children()
         if (![undefined, null].includes(last_current_sequence)) {
             last_current_sequence.classList.remove('sequence-current')
         }
@@ -1244,6 +1428,8 @@ const module = (function () {
             const uuid = characteristic.uuid
             if (uuid == '00002a56-0000-1000-8000-00805f9b34fb') {
                 await handle_digital_characteristic(characteristic)
+            } else if (uuid == '00002a58-0000-1000-8000-00805f9b34fb') {
+                await handle_analog_characteristic(characteristic)
             } else if (uuid == '9c102a56-5cf1-8fa7-1549-01fdc1d171dc') {
                 handle_digital_output_sequence_characteristic(characteristic)
             }
@@ -1264,9 +1450,9 @@ const module = (function () {
             console.log(e)
         }
 
-        const output_pin_count = output_pins.length
+        const output_pin_count = output_digital_pins.length
 
-        if (output_pins.length == 0) {
+        if (output_pin_count == 0) {
             set_digital_outputs_text('No digital outputs configured')
         } else {
             set_digital_outputs_text('')
@@ -1314,7 +1500,7 @@ const module = (function () {
     }
 
     function match_output_pins_to_configuration() {
-        if (output_pins.length == 0) {
+        if (output_digital_pins.length == 0) {
             return
         }
         if (configured_pins.length == 0) {
@@ -1323,12 +1509,12 @@ const module = (function () {
 
         var output_pin_index = 0
         for (const configured_pin of configured_pins) {
-            if (output_pin_index > output_pins.length) {
+            if (output_pin_index > output_digital_pins.length) {
                 console.error('Pin matching overflow')
                 return
             }
             if (configured_pin.function == 'output') {
-                output_pins[output_pin_index].pin = configured_pin.pin
+                output_digital_pins[output_pin_index].pin = configured_pin.pin
                 output_pin_index++
             }
         }
