@@ -86,6 +86,29 @@ const module = (function () {
         display_digital_sequence_steps()
         display_pin_configuration_menu()
         display_connection_params_configuration()
+
+        fetch('boards.json')
+            .then(response => response.json())
+            .then(display_pre_select_dropdown)
+    }
+
+    function pre_select_board(board){
+        console.log(board.pins)
+    }
+
+    function display_pre_select_dropdown(boards){
+        const container = $('#container-pre-select')
+
+        for(const board of boards){
+            const html = `
+            <div class="pre-select-option m-2">
+                <h4>${board.label}</h4>
+                <img class="mw-100" src="${board.image_url}"/>
+            </div>`
+            const option = $(html)
+            option.click(_ => pre_select_board(board))
+            container.append(option)
+        }
     }
 
     function display_connection_params_configuration() {

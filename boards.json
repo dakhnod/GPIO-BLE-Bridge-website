@@ -1,0 +1,122 @@
+[
+    {
+        "label": "WT51822-S4AT",
+        "image_url": "https://ce8dc832c.cloudimg.io/v7/_cdn_/B2/F0/70/00/0/462635_1.jpg?width=640&height=480&wat=1&wat_url=_tme-wrk_%2Ftme_new.png&wat_scale=100p&ci_sign=ebb605e11d79362b268039e5ab9cb4e8f4084a47",
+        "pins": [
+            {
+                "pin": 1,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 2,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 3,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 4,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 9,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 10,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 13,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            }
+        ]
+    },
+    {
+        "label": "Big beacon",
+        "image_url": "https://ae01.alicdn.com/kf/H13a922ad300e4be38518dbdeef4f4474Y/Bluetooth-NRF51822-modul-ibeacon-basis-bahnhof-positioning-Leuchtfeuer-near-field-positionierung.jpg_Q90.jpg_.webp",
+        "pins": []
+    },
+    {
+        "label": "Small beacon",
+        "image_url": "https://ae01.alicdn.com/kf/S703c960ffa304fb395bbca601f3a7dcdx/NRF51822-Drahtlose-Bluetooth-4-0-Modul-2V-3-3-V-F-r-iBeacon-Systeme-F-r.jpg_Q90.jpg_.webp",
+        "pins": [
+
+        ]
+    },
+    {
+        "label": "BLE400",
+        "image_url": "https://www.waveshare.com/media/catalog/product/cache/1/image/800x800/9df78eab33525d08d6e5fb8d27136e95/b/l/ble400-1_3.jpg",
+        "pins": [
+            {
+                "pin": 16,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            },
+            {
+                "pin": 17,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            },
+            {
+                "pin": 18,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 19,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 20,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 21,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 22,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            }
+        ]
+    }
+]

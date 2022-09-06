@@ -114,6 +114,12 @@
         span.noclick {
             pointer-events: none;
         }
+
+        div.pre-select-option {
+            border-style: solid;
+            border-width: thin;
+            max-width: 10em;
+        }
     </style>
 </head>
 
@@ -252,8 +258,10 @@
                 </div>
                 
                 <button class="btn btn-secondary dropdown-toggle w-100 mt-2" data-toggle="dropdown" id="button-pre-select">Pre-select</button>
-                <div class="dropdown-menu" aria-labelledby="button-pre-select">
-                    <img src="https://ce8dc832c.cloudimg.io/v7/_cdn_/B2/F0/70/00/0/462635_1.jpg?width=640&height=480&wat=1&wat_url=_tme-wrk_%2Ftme_new.png&wat_scale=100p&ci_sign=ebb605e11d79362b268039e5ab9cb4e8f4084a47"/>
+                <div style="text-align: center;" class="dropdown-menu" aria-labelledby="button-pre-select">
+                    <div class="d-flex flex-wrap" id="container-pre-select">
+
+                    </div>
                 </div>
 
                 <div class="d-flex flex-wrap" id="pin-configurations">
