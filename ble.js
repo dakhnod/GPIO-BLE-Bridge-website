@@ -127,6 +127,22 @@ const module = (function () {
         $('#button-send-conn-params-configuration').text('Send configuration to device')
     }
 
+    function create_input_range_limiter(min, max){
+        return function(event){
+            const target = event.currentTarget
+            const value = target.value
+            if(value == ''){
+                return
+            }
+            const num = Number(value)
+            if(num > max){
+                target.value = max
+            }else if(num < min){
+                target.value = min
+            }
+        }
+    }
+
     async function send_connection_parameters(event) {
         const min_interval = Number($('#input-min-conn-interval').val())
         const max_interval = Number($('#input-max-conn-interval').val())
@@ -571,6 +587,7 @@ const module = (function () {
                 pin.function_output = 'digital',
                 pin.default_high = ((bits & 0b0010) == 0b0010)
             }
+            return pin
         }
 
 
@@ -1051,6 +1068,8 @@ const module = (function () {
 
             const button = $('#value-send', child)
             const edit_value = $('#pwm-duty-cycle', child)
+
+            edit_value.on('input', create_input_range_limiter(0, 20000))
 
             button.click(async function(event) {
                 const value = edit_value.val()
