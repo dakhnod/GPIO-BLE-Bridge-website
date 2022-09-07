@@ -9,44 +9,10 @@ const module = (function () {
 
     var configured_pins = []
     var output_digital_pins = []
-    var output_analog_pins = [
-        {
-            pin: 1,
-            value: 1000
-        },
-        {
-            pin: 2,
-            value: 1000
-        }
-    ]
+    var output_analog_pins = []
     var input_pins = []
 
-    var sequence_digital_steps = [
-        {
-            states: [false, false, true],
-            output_analog_values: [
-                2000,
-                undefined,
-            ],
-            delay: 1000
-        },
-        {
-            states: [false, false, true],
-            output_analog_values: [
-                undefined,
-                undefined,
-            ],
-            delay: 1000
-        },
-        {
-            states: [false, false, true],
-            output_analog_values: [
-                undefined,
-                undefined,
-            ],
-            delay: 1000
-        }
-    ]
+    var sequence_digital_steps = []
 
     var sequence_last_delay = 1000
 
@@ -685,6 +651,7 @@ const module = (function () {
     function insert_step(index) {
         const step = {
             states: Array(output_digital_pins.length).fill(false),
+            output_analog_values: Array(output_analog_pins.length).fill(undefined),
             delay: sequence_last_delay
         }
         sequence_digital_steps.splice(index, 0, step)
@@ -939,35 +906,6 @@ const module = (function () {
         set_configuration_visibility()
     }
 
-    function on_pin_configuration_value_changed(event) {
-        const characteristic = event.target
-        const value = characteristic.value
-        const bytes = new Uint8Array(value.buffer)
-
-        const pin_count = bytes.length * 2
-
-        configured_pins = []
-
-        for (var i = 0; i < bytes.length; i++) {
-            const byte = bytes[i]
-
-            configured_pins.push(decode_pin_bits(pin_count - ((i * 2) + 0) - 1, (byte >> 4) & 0b1111))
-            configured_pins.push(decode_pin_bits(pin_count - ((i * 2) + 1) - 1, (byte >> 0) & 0b1111))
-        }
-
-        configured_pins = configured_pins.reverse()
-
-        set_device_status('read configuration.')
-
-        match_output_pins_to_configuration()
-        match_input_pins_to_configuration()
-        display_outputs_digital()
-        display_inputs_digital()
-
-        display_pin_configuration_menu(configured_pins)
-        display_device_information();
-    }
-
     async function send_digital_output_pin(index, state) {
         if (!is_device_connected) {
             throw 'Device not connected'
@@ -1082,7 +1020,7 @@ const module = (function () {
                     throw 'could not find analog output characteristic'
                 }
 
-                const payload = Uint16Array(1)
+                const payload = new Uint16Array(1)
                 payload[0] = Number(value)
 
                 await pin.output_analog_characteristic.writeValueWithResponse(payload.buffer)
@@ -1142,6 +1080,8 @@ const module = (function () {
         // configured_pins = []
         // output_digital_pins = []
         input_pins = []
+        output_digital_pins = []
+        output_analog_pins = []
 
         characteristic_configuration_pins = null
         characteristic_configuration_connection_parameters = null
@@ -1212,8 +1152,6 @@ const module = (function () {
         }
 
         set_output_buttons_enabled(true)
-        match_output_pins_to_configuration()
-        display_outputs_digital()
     }
 
     async function handle_digital_input_characteristic(characteristic) {
@@ -1281,9 +1219,6 @@ const module = (function () {
                 }
             })
         }
-
-        match_input_pins_to_configuration()
-        display_inputs_digital()
     }
 
     async function handle_output_analog_characteristic(characteristic){
@@ -1292,10 +1227,9 @@ const module = (function () {
         }
         if(characteristic.properties.read){
             const response = await characteristic.readValue()
-            if(response.byteLength != 2){
-                throw 'Analog characteristic value is not size 2'
+            if(response.byteLength == 2){
+                analog_pin.value = response.getUint16(0, true)
             }
-            analog_pin.value = response.getUint16(0, true)
         }
         output_analog_pins.push(analog_pin)
     }
@@ -1348,7 +1282,6 @@ const module = (function () {
 
     function handle_digital_output_sequence_characteristic(characteristic) {
         characteristic_output_sequence = characteristic
-        display_device_information()
     }
 
     function set_digital_outputs_text(text) {
@@ -1399,7 +1332,7 @@ const module = (function () {
                 await handle_digital_characteristic(characteristic)
             } else if (uuid == '00002a58-0000-1000-8000-00805f9b34fb') {
                 await handle_analog_characteristic(characteristic)
-            } else if (uuid == '9c102a56-5cf1-8fa7-1549-01fdc1d171dc') {
+            } else if (uuid == '9c100056-5cf1-8fa7-1549-01fdc1d171dc') {
                 handle_digital_output_sequence_characteristic(characteristic)
             }
         }
@@ -1443,8 +1376,17 @@ const module = (function () {
             }
         }
 
+        match_output_pins_to_configuration()
+        match_input_pins_to_configuration()
+
         display_digital_sequence_steps()
         display_connection_params_configuration()
+
+        display_pin_configuration_menu(configured_pins)
+        display_outputs_digital()
+        display_outputs_analog()
+        display_inputs_digital()
+        display_device_information()
     }
 
     function match_input_pins_to_configuration() {
@@ -1469,22 +1411,36 @@ const module = (function () {
     }
 
     function match_output_pins_to_configuration() {
-        if (output_digital_pins.length == 0) {
+        if (output_digital_pins.length == 0 && output_analog_pins.length == 0) {
             return
         }
         if (configured_pins.length == 0) {
             return
         }
 
-        var output_pin_index = 0
+        var output_digital_pin_index = 0
+        var output_analog_pin_index = 0
+
         for (const configured_pin of configured_pins) {
-            if (output_pin_index > output_digital_pins.length) {
-                console.error('Pin matching overflow')
-                return
-            }
             if (configured_pin.function == 'output') {
-                output_digital_pins[output_pin_index].pin = configured_pin.pin
-                output_pin_index++
+                if(configured_pin.function_output == 'digital'){
+                    if (output_digital_pin_index > output_digital_pins.length) {
+                        console.error('Pin matching overflow')
+                        continue
+                    }
+                    output_digital_pins[output_digital_pin_index].pin = configured_pin.pin
+                    output_digital_pin_index++
+                    continue
+                }
+                if(configured_pin.function_output == 'analog'){
+                    if (output_analog_pin_index > output_analog_pins.length) {
+                        console.error('Pin matching overflow')
+                        continue
+                    }
+                    output_analog_pins[output_analog_pin_index].pin = configured_pin.pin
+                    output_analog_pin_index++
+                    continue
+                }
             }
         }
     }
@@ -1492,14 +1448,29 @@ const module = (function () {
     async function handle_pin_configuration_characteristic(characteristic) {
         set_device_status('reading configuration...')
         characteristic_configuration_pins = characteristic
-        characteristic.addEventListener('characteristicvaluechanged', on_pin_configuration_value_changed)
-        await characteristic.readValue()
+        const value = await characteristic.readValue()
+
+        const bytes = new Uint8Array(value.buffer)
+
+        const pin_count = bytes.length * 2
+
+        configured_pins = []
+
+        for (var i = 0; i < bytes.length; i++) {
+            const byte = bytes[i]
+
+            configured_pins.push(decode_pin_bits(pin_count - ((i * 2) + 0) - 1, (byte >> 4) & 0b1111))
+            configured_pins.push(decode_pin_bits(pin_count - ((i * 2) + 1) - 1, (byte >> 0) & 0b1111))
+        }
+
+        configured_pins = configured_pins.reverse()
+
+        set_device_status('read configuration.')
     }
 
     async function handle_connection_params_characteristic(characteristic) {
         characteristic_configuration_connection_parameters = characteristic
         const result = await characteristic_configuration_connection_parameters.readValue()
-        console.log(result)
 
         const array = new Uint16Array(result.buffer)
 
