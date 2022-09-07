@@ -57,13 +57,59 @@
     {
         "label": "Big beacon",
         "image_url": "https://ae01.alicdn.com/kf/H13a922ad300e4be38518dbdeef4f4474Y/Bluetooth-NRF51822-modul-ibeacon-basis-bahnhof-positioning-Leuchtfeuer-near-field-positionierung.jpg_Q90.jpg_.webp",
-        "pins": []
+        "pins": [
+            {
+                "pin": 8,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            },
+            {
+                "pin": 12,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 15,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 16,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 18,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            }
+        ]
     },
     {
         "label": "Small beacon",
         "image_url": "https://ae01.alicdn.com/kf/S703c960ffa304fb395bbca601f3a7dcdx/NRF51822-Drahtlose-Bluetooth-4-0-Modul-2V-3-3-V-F-r-iBeacon-Systeme-F-r.jpg_Q90.jpg_.webp",
         "pins": [
-
+            {
+                "pin": 28,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            },
+            {
+                "pin": 29,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            }
         ]
     },
     {

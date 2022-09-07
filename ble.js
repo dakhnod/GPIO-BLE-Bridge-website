@@ -60,6 +60,26 @@ const module = (function () {
 
     function pre_select_board(board){
         console.log(board.pins)
+        var pin_index = 0
+        configured_pins = []
+        for(const pin of board.pins){
+            for(var j = pin_index; j < pin.pin; j++){
+                configured_pins.push({
+                    pin: j,
+                    function: 'disabled'
+                })
+            }
+            pin_index = pin.pin + 1
+            configured_pins.push(pin)
+        }
+        for(; pin_index < 32; pin_index++){
+            configured_pins.push({
+                pin: pin_index,
+                function: 'disabled'
+            })
+        }
+        console.log(configured_pins)
+        display_pin_configuration_menu()
     }
 
     function display_pre_select_dropdown(boards){
@@ -497,7 +517,7 @@ const module = (function () {
         await characteristic_configuration_pins.writeValueWithResponse(new Uint8Array(payload))
         // reset everything since pin count might change
         output_digital_pins = []
-        configured_pins = []
+        // configured_pins = []
         set_device_status('sending configuration...')
     }
 
@@ -1447,6 +1467,10 @@ const module = (function () {
 
     async function handle_pin_configuration_characteristic(characteristic) {
         set_device_status('reading configuration...')
+        if(configured_pins.length > 0){
+            console.log('pin configuratioin already known')
+            return;
+        }
         characteristic_configuration_pins = characteristic
         const value = await characteristic.readValue()
 
