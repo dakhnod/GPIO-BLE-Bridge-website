@@ -661,75 +661,6 @@ const module = (function () {
         }
     }
 
-    function create_select(id, label, pin_data, options, selected, is_checkbox, function_class = '') {
-        const pin = pin_data.pin
-        var select_id = `pin-${pin}-${id}`
-
-        var checkbox_string = ''
-
-        if (is_checkbox) {
-            if (selected) {
-                checkbox_string = `<input type="checkbox" value="" id="${select_id}" checked>`
-            } else {
-                checkbox_string = `<input type="checkbox" value="" id="${select_id}">`
-            }
-
-            const checkbox_html = `
-            <div class="row ${function_class}">
-                <label for="${select_id}">${label}: </label>
-    
-                ${checkbox_string}
-            </div>`
-
-            $(`#pin-${pin}-configuration`).append(checkbox_html)
-
-
-            $(`#${select_id}`).change(function () {
-                configured_pins[pin][id] = $(this).is(':checked')
-                on_pin_configuration_changed()
-            })
-            return
-        }
-
-        var options_string = ''
-        for (const option of options) {
-            const button_id = `${select_id}-${option.value}`
-            if (option.value == selected) {
-                options_string += `
-                <label class="btn btn-primary active">
-                    <input type="radio" id="${button_id}" autocomplete="off" checked> ${option.label}
-                </label>
-                `
-            } else {
-                options_string += `
-                <label class="btn btn-primary">
-                    <input type="radio" id="${button_id}" autocomplete="off"> ${option.label}
-                </label>
-                `
-            }
-        }
-
-        const html = `
-        <div class="row ${function_class}">
-            <label for="${select_id}">${label}: </label>
-
-            <div class="btn-group btn-group-toggle" data-toggle="buttons">
-                ${options_string}
-            </div>
-        </div>`
-
-        $(`#pin-${pin}-configuration`).append(html)
-
-        for (const option of options) {
-            const button_id = `${select_id}-${option.value}`
-            $(`#${button_id}`).click(() => {
-                configured_pins[pin][id] = option.value
-                on_pin_configuration_changed()
-            })
-        }
-
-    }
-
     function on_pin_configuration_changed() {
         set_configuration_visibility()
     }
@@ -769,10 +700,9 @@ const module = (function () {
             </div>
             `
 
+            const child = $(step_html)
 
-            steps_container.append(step_html)
-
-            const child = steps_container.children().last()
+            steps_container.append(child)
 
             for(var j = 0; j < output_analog_pins.length; j++){
                 const pin = output_analog_pins[j]
@@ -793,11 +723,11 @@ const module = (function () {
                     <input class="form-control" type="number" id="pwm-duty-cycle" value="${value}">
                 </div>`
 
-                child.append(analog_html)
+                const form = $(analog_html)
+
+                child.append(form)
 
                 const current_value_index = j
-
-                const form = child.children().last()
                 $('#pwm-duty-cycle', form).on('input', event => {
                     const input = event.currentTarget
                     const value = input.value
@@ -859,9 +789,10 @@ const module = (function () {
                     <div class="button-pin button-pin-state" id="state-button">
                         <span class="center noclick">${label}</span>
                     </div>`;
-                button_container.append(button_html)
 
-                const button = button_container.children().last()
+                const button = $(button_html)
+
+                button_container.append(button)
 
                 if (step.states[j]) {
                     button[0].classList.add('pin-high')
@@ -912,21 +843,18 @@ const module = (function () {
             </div>
         </div>
         `
-        parent.append(output_html)
 
-        const child = parent.children().last()
+        const child = $(output_html)
 
+        parent.append(child)
 
-        const dropdown_button = $('#dropdown-button', child)
         const container_options = $('#dropdown-options', child)
         for (const option of options) {
             const option_html = `<a class="dropdown-item">${option.label}</a>`
 
-            container_options.append(option_html)
+            const button = $(option_html)
 
-            const button = container_options
-                .children()
-                .last()
+            container_options.append(button)
 
             button.click(event => {
                 pin[pin_field] = option.value
@@ -971,9 +899,10 @@ const module = (function () {
             <h3>Pin ${pin.pin}</h3>
             </div>
             `
-            pin_configurations_container.append(parent_html)
 
-            const container = pin_configurations_container.children().last()
+            const container = $(parent_html)
+
+            pin_configurations_container.append(container)
 
             create_pin_configuration_dropdown(container, pin, 'function', functions)
             if (pin.function != 'disabled') {
@@ -1088,9 +1017,8 @@ const module = (function () {
                 <span class="center noclick">${label}</span>
             </div>
             `
-
-            button_container.append(button_html)
-            const button = button_container.children().last()
+            const button = $(button_html)
+            button_container.append(button)
             button.click(i, handle_output_pin_click)
         }
     }
@@ -1118,9 +1046,8 @@ const module = (function () {
                     <button class="btn btn-primary w-100 mt-3" id="value-send">Send value</button>
                 </div>
             </div>`
-            container.append(pin_html)
-
-            const child = container.children().last()[0]
+            const child = $(pin_html)
+            container.append(child)
 
             const button = $('#value-send', child)
             const edit_value = $('#pwm-duty-cycle', child)
