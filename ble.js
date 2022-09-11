@@ -297,13 +297,13 @@ const module = (function () {
             repetitions = Number(repetitions)
         }
 
-        const data = [
-            ...encode_varint(repetitions)
-        ]
+        const data = []
 
         for (var i = 0; i < filtered_states.length; i++) {
+            data.push(0b00000000) // instruction write digital
             data.push(...encode_states(filtered_states[i]))
-            data.push(...encode_analog_values(filtered_output_analog_values[i]))
+            
+            data.push(0b00100000) // instruction sleep
             data.push(...encode_varint(sequence_digital_steps[i].delay))
         }
 
