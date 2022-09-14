@@ -195,6 +195,26 @@
 
         <div class="row segment">
             <div class="col">
+                <h2>gpioASM upload</h2>
+
+                <button class="btn btn-primary w-100" id="gpio-asm-upload-button">Send to device</button>
+
+                <div id="gpio-asm-file-info">
+                    Chose gpioASM file
+                </div>
+
+                <div class="form-group">
+                    <label for="gpio-asm-digital-input-count">Number of digital inputs</label>
+                    <input type="numer" class="form-control" id="gpio-asm-digital-input-count">
+                    <label for="gpio-asm-digital-output-count">Number of digital outputs</label>
+                    <input type="numer" class="form-control" id="gpio-asm-digital-output-count">
+                    <input class="form-control" type="file" id="gpio-asm-file-upload">
+                </div>
+            </div>
+        </div>
+
+        <div class="row segment">
+            <div class="col">
                 <h2>Digital inputs</h2>
                 <div class="col" id="info_digital_inputs">
                     Device not connected
