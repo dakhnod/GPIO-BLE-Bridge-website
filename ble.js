@@ -101,7 +101,7 @@ const module = (function () {
             ]
 
             if(pin_count < states.length){
-                states.splice(pin_digital_output_count)
+                states.splice(pin_count)
             }else{
                 while(pin_count > states.length){
                     states.push(undefined)
@@ -172,6 +172,20 @@ const module = (function () {
                     gpio_asm_encode_input_pins
                 ]
             },
+            sleep_match_all_timeout: {
+                instruction_bits: 0b00100011,
+                argument_encoders: [
+                    gpio_asm_encode_input_pins,
+                    encode_varint
+                ]
+            },
+            sleep_match_any_timeout: {
+                instruction_bits: 0b00100100,
+                argument_encoders: [
+                    gpio_asm_encode_input_pins,
+                    encode_varint
+                ]
+            },
             jump: {
                 instruction_bits: 0b01000000,
                 argument_encoders: [
@@ -236,9 +250,12 @@ const module = (function () {
     function create_upload_packet_data_handler(characteristic){
         return async function(data){
             const packets = split_data_into_packets(data, 19)
-            for(const packet of packets){
+            for(var i = 0; i < packets.length; i++){
+                set_gpio_asm_message(`sending packet ${i + 1}/${ packets.length}`)
+                const packet = packets[i]
                 await characteristic.writeValueWithResponse(new Uint8Array(packet))
             }
+            set_gpio_asm_message('all packets sent.')
         }
     }
 
