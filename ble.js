@@ -1715,7 +1715,13 @@ const module = (function () {
     }
 
     async function handle_automation_io_service(service){
-        const characteristics = await service.getCharacteristics()
+        var characteristics = null
+        try{
+            characteristics = await service.getCharacteristics()
+        }catch(e){
+            console.error('error getting AIO characteristics. Probably no pins configured. ' + e)
+            return
+        }
         for (const characteristic of characteristics) {
             const uuid = characteristic.uuid
             if (uuid == '00002a56-0000-1000-8000-00805f9b34fb') {
