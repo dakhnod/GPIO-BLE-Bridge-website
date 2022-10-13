@@ -1876,8 +1876,8 @@ const module = (function () {
     async function handle_pin_configuration_characteristic(characteristic) {
         set_device_status('reading configuration...')
         if(configured_pins.length > 0){
-            console.log('pin configuratioin already known')
-            return;
+            console.log('pin configuratioin already known, reading anyways')
+            // return;
         }
         characteristic_configuration_pins = characteristic
         const value = await characteristic.readValue()
