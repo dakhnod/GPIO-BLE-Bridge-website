@@ -161,60 +161,66 @@ const module = (function () {
                 ]
             },
             sleep_match_all: {
-                instruction_bits: 0b00100001,
+                instruction_bits: 0b00110000,
                 argument_encoders: [
                     gpio_asm_encode_input_pins
                 ]
             },
             sleep_match_any: {
-                instruction_bits: 0b00100010,
+                instruction_bits: 0b01000000,
                 argument_encoders: [
                     gpio_asm_encode_input_pins
                 ]
             },
             sleep_match_all_timeout: {
-                instruction_bits: 0b00100011,
+                instruction_bits: 0b01010000,
                 argument_encoders: [
                     gpio_asm_encode_input_pins,
                     encode_varint
                 ]
             },
             sleep_match_any_timeout: {
-                instruction_bits: 0b00100100,
+                instruction_bits: 0b01100000,
                 argument_encoders: [
                     gpio_asm_encode_input_pins,
                     encode_varint
                 ]
             },
             jump: {
-                instruction_bits: 0b01000000,
+                instruction_bits: 0b01110000,
                 argument_encoders: [
                     encode_varint
                 ]
             },
+            check_bytecode_version: {
+                instruction_bits: 0b10000000,
+                argument_encoders: [
+                    encode_varint
+                ]
+            }
             jump_match_all: {
-                instruction_bits: 0b01000001,
+                instruction_bits: 0b10010000,
                 argument_encoders: [
                     encode_varint,
                     gpio_asm_encode_input_pins
                 ]
             },
             jump_match_any: {
-                instruction_bits: 0b01000010,
+                instruction_bits: 0b10100000,
                 argument_encoders: [
                     encode_varint,
                     gpio_asm_encode_input_pins
                 ]
             },
             jump_count: {
-                instruction_bits: 0b01001000,
+                instruction_bits: 0b10110000,
                 argument_encoders: [
                     encode_varint,
                     encode_varint,
                 ]
             },
             exit: {
-                instruction_bits: 0b10000000,
+                instruction_bits: 0b11000000,
                 argument_encoders: []
             }
         }
@@ -305,6 +311,15 @@ const module = (function () {
         var current_offset = 0
 
         var labels = {}
+
+        const bytecode_version = 0
+
+        instructions.splice(0, 0, {
+            instruction: 'check_bytecode_version',
+            args: [
+                bytecode_version
+            ]
+        })
 
         for(const instruction of instructions){
             if(instruction.instruction == 'label'){
