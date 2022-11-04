@@ -12,6 +12,8 @@ const module = (function () {
     var output_analog_pins = []
     var input_pins = []
 
+    var device_firmware_version = undefined
+
     var sequence_digital_steps = []
 
     var sequence_last_delay = 1000
@@ -197,7 +199,7 @@ const module = (function () {
                 argument_encoders: [
                     encode_varint
                 ]
-            }
+            },
             jump_match_all: {
                 instruction_bits: 0b10010000,
                 argument_encoders: [
@@ -789,6 +791,7 @@ const module = (function () {
             ],
             // acceptAllDevices: true,
             optionalServices: [
+                '0000180a-0000-1000-8000-00805f9b34fb', // device information service
                 '00001815-0000-1000-8000-00805f9b34fb', // Automation IO service
                 '9c100000-5cf1-8fa7-1549-01fdc1d171dc', // configuration service
                 'b1190000-2a74-d5a2-784f-c1cdb3862ab0' // gpioASM service
@@ -1729,6 +1732,17 @@ const module = (function () {
         digital_output_info.text(text)
     }
 
+    async function handle_device_information_service(service){
+        const characteristics = await service.getCharacteristics()
+        for(const characteristic of characteristics){
+            const uuid = characteristic.uuid
+            if(uuid == '00002a26-0000-1000-8000-00805f9b34fb'){
+                const value = await characteristic.readValue()
+                device_firmware_version = new TextDecoder().decode(new Uint8Array(value.buffer))
+            }
+        }
+    }
+
     async function handle_automation_io_service(service){
         var characteristics = null
         try{
@@ -1772,6 +1786,21 @@ const module = (function () {
         }
     }
 
+    function check_firmware_version(){
+        if(device_firmware_version == undefined){
+            alert('Could not read chip firmware version. Continue at your own risk as the chip might not be compatible.')
+            return
+        }
+
+        const supported_firmware_versions = ['0.5.0']
+
+        if(supported_firmware_versions.includes(device_firmware_version)){
+            return
+        }
+
+        alert(`Device firmware version: ${device_firmware_version}.\nThe supported firmware version list is ${supported_firmware_versions.join(', ')}.\n\nContinue at your own risk or update your firmware.`)
+    }
+
     async function on_bluetooth_gatt_connected(gatt) {
         is_device_connected = gatt.connected
         gatt_server = gatt
@@ -1780,6 +1809,7 @@ const module = (function () {
         var services = await gatt.getPrimaryServices()
 
         const service_handler_map = {
+            '0000180a-0000-1000-8000-00805f9b34fb': handle_device_information_service,
             '00001815-0000-1000-8000-00805f9b34fb': handle_automation_io_service,
             '9c100000-5cf1-8fa7-1549-01fdc1d171dc': handle_configuration_service,
             'b1190000-2a74-d5a2-784f-c1cdb3862ab0': handle_gpio_asm_service,
@@ -1818,6 +1848,8 @@ const module = (function () {
                 }
             }
         }
+
+        check_firmware_version()
 
         match_output_pins_to_configuration()
         match_input_pins_to_configuration()
