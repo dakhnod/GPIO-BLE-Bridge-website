@@ -87,7 +87,7 @@ const module = (function () {
         $('#gpio-asm-file-info').text(message)
     }
 
-    function gpio_asm_create_pin_encoder(pin_count){
+    function gpio_asm_create_pin_encoder(){
         return function(states_string){
             const states = []
             for(var i = 0; i < states_string.length; i++)[
@@ -101,14 +101,6 @@ const module = (function () {
                     '-': undefined
                 }[states_string[i].toLowerCase()])
             ]
-
-            if(pin_count < states.length){
-                states.splice(pin_count)
-            }else{
-                while(pin_count > states.length){
-                    states.push(undefined)
-                }
-            }
     
             return encode_states(states)
         }
@@ -121,12 +113,30 @@ const module = (function () {
         return new Uint8Array(array.buffer)
     }
 
-    function gpio_asm_compile_command(command, input_pin_count, output_pin_count){
-        const gpio_asm_encode_input_pins = gpio_asm_create_pin_encoder(input_pin_count)
-        const gpio_asm_encode_output_pins = gpio_asm_create_pin_encoder(output_pin_count)
+    function gpio_asm_compile_command(command){
+        const gpio_asm_encode_input_pins = gpio_asm_create_pin_encoder()
+        const gpio_asm_encode_output_pins = gpio_asm_create_pin_encoder()
+
+        function encode_pin_bytes_length(command, opcode_original){
+            function get_bytes_count_needed_for_bits(state_string){
+                return Math.ceil(state_string.length / 4)
+            }
+
+            const instruction = command.instruction
+            if(instruction == 'write_digital'){
+                return (opcode_original | get_bytes_count_needed_for_bits(command.args[0]))
+            }
+            if(instruction.startsWith('sleep_match')){
+                return (opcode_original | get_bytes_count_needed_for_bits(command.args[0]))
+            }
+            if(instruction.startsWith('jump_match')){
+                return (opcode_original | get_bytes_count_needed_for_bits(command.args[1]))
+            }
+        }
 
         const gpio_asm_instrutions = {
             write_digital: {
+                opcode_encoder: encode_pin_bytes_length,
                 instruction_bits: 0b00000000,
                 argument_encoders: [
                     gpio_asm_encode_output_pins
@@ -163,18 +173,21 @@ const module = (function () {
                 ]
             },
             sleep_match_all: {
+                opcode_encoder: encode_pin_bytes_length,
                 instruction_bits: 0b00110000,
                 argument_encoders: [
                     gpio_asm_encode_input_pins
                 ]
             },
             sleep_match_any: {
+                opcode_encoder: encode_pin_bytes_length,
                 instruction_bits: 0b01000000,
                 argument_encoders: [
                     gpio_asm_encode_input_pins
                 ]
             },
             sleep_match_all_timeout: {
+                opcode_encoder: encode_pin_bytes_length,
                 instruction_bits: 0b01010000,
                 argument_encoders: [
                     gpio_asm_encode_input_pins,
@@ -182,6 +195,7 @@ const module = (function () {
                 ]
             },
             sleep_match_any_timeout: {
+                opcode_encoder: encode_pin_bytes_length,
                 instruction_bits: 0b01100000,
                 argument_encoders: [
                     gpio_asm_encode_input_pins,
@@ -201,6 +215,7 @@ const module = (function () {
                 ]
             },
             jump_match_all: {
+                opcode_encoder: encode_pin_bytes_length,
                 instruction_bits: 0b10010000,
                 argument_encoders: [
                     encode_varint,
@@ -208,6 +223,7 @@ const module = (function () {
                 ]
             },
             jump_match_any: {
+                opcode_encoder: encode_pin_bytes_length,
                 instruction_bits: 0b10100000,
                 argument_encoders: [
                     encode_varint,
@@ -242,7 +258,14 @@ const module = (function () {
 
         const bytes = []
 
-        bytes.push(instruction_info.instruction_bits)
+        const opcode = function(){
+            if(instruction_info.opcode_encoder == undefined){
+                return instruction_info.instruction_bits
+            }
+            return instruction_info.opcode_encoder(command, instruction_info.instruction_bits)
+        }()
+
+        bytes.push(opcode)
 
         check_instruction_argument_length(command.instruction, instruction_info.argument_encoders.length, command.args.length)
 
@@ -267,31 +290,14 @@ const module = (function () {
         }
     }
 
-    function on_button_gpio_asm_upload_click(_){
+    function on_button_gpio_asm_upload_click(){
         try{
-            function read_check_count(id, direction){
-                const input_val = $(`#${id}`).val();
-                if(input_val == ''){
-                    throw `${direction} pin count cannot be empty`
-                }
-                const number = Number(input_val)
-                if(number < 0){
-                    throw `${direction} pin count cannot be negative`
-                }
-                return number
-            }
-
-            const input_pin_count = read_check_count('gpio-asm-digital-input-count', 'input')
-            const output_pin_count = read_check_count('gpio-asm-digital-output-count', 'output')
-
             if(characteristic_gpio_asm_data == undefined){
                 throw 'no gpioASM data characteristic found'
             }
 
             gpio_asm_file_read(
-                create_upload_packet_data_handler(characteristic_gpio_asm_data),
-                input_pin_count,
-                output_pin_count
+                create_upload_packet_data_handler(characteristic_gpio_asm_data)
             )
 
             $('#gpio-asm-file-upload').val(null)
@@ -309,7 +315,7 @@ const module = (function () {
         }
     }
 
-    function gpio_asm_compile(instructions, input_pin_count, output_pin_count){
+    function gpio_asm_compile(instructions){
         var current_offset = 0
 
         var labels = {}
@@ -342,7 +348,7 @@ const module = (function () {
                 }else if(instruction.instruction.startsWith('jump_match_')){
                     check_instruction_argument_length(instruction.instruction, 2, instruction.args.length)
 
-                    const encoder = gpio_asm_create_pin_encoder(input_pin_count)
+                    const encoder = gpio_asm_create_pin_encoder()
 
                     const length_count = encoder(instruction.args[1]).length
                     current_offset += length_count
@@ -353,7 +359,7 @@ const module = (function () {
 
                 continue
             }
-            var bytes = gpio_asm_compile_command(instruction, input_pin_count, output_pin_count)
+            var bytes = gpio_asm_compile_command(instruction)
             current_offset += bytes.length
             instruction.bytes = bytes
         }
@@ -456,7 +462,7 @@ const module = (function () {
         return data
     }
 
-    function gpio_asm_file_read(compiled_data_handler, input_pin_count, output_pin_count){
+    function gpio_asm_file_read(compiled_data_handler){
         const files = $('#gpio-asm-file-upload')[0].files
         if(files.length == 0){
             throw 'no file uploaded'
@@ -467,11 +473,11 @@ const module = (function () {
         }
 
         const reader = new FileReader()
-        reader.onload = create_gpio_asm_file_load_handler(compiled_data_handler, input_pin_count, output_pin_count)
+        reader.onload = create_gpio_asm_file_load_handler(compiled_data_handler)
         reader.readAsText(file)
     }
 
-    function create_gpio_asm_file_load_handler(compiled_data_handler, input_pin_count, output_pin_count){
+    function create_gpio_asm_file_load_handler(compiled_data_handler){
         return function(event){
             const file_contents = event.currentTarget.result
             const lines = file_contents.split('\n')
@@ -501,7 +507,7 @@ const module = (function () {
                 })
             }
 
-            const data = gpio_asm_compile(commands, input_pin_count, output_pin_count)
+            const data = gpio_asm_compile(commands)
 
             console.log(data)
             compiled_data_handler(data)
