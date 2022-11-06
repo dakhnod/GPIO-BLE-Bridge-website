@@ -280,13 +280,17 @@ const module = (function () {
 
     function create_upload_packet_data_handler(characteristic){
         return async function(data){
-            const packets = split_data_into_packets(data, 19)
-            for(var i = 0; i < packets.length; i++){
-                set_gpio_asm_message(`sending packet ${i + 1}/${ packets.length}`)
-                const packet = packets[i]
-                await characteristic.writeValueWithResponse(new Uint8Array(packet))
+            try{
+                const packets = split_data_into_packets(data, 19)
+                for(var i = 0; i < packets.length; i++){
+                    set_gpio_asm_message(`sending packet ${i + 1}/${ packets.length}`)
+                    const packet = packets[i]
+                    await characteristic.writeValueWithResponse(new Uint8Array(packet))
+                }
+                set_gpio_asm_message('all packets sent.')
+            }catch(e){
+                set_gpio_asm_message(e)
             }
-            set_gpio_asm_message('all packets sent.')
         }
     }
 
@@ -479,38 +483,42 @@ const module = (function () {
 
     function create_gpio_asm_file_load_handler(compiled_data_handler){
         return function(event){
-            const file_contents = event.currentTarget.result
-            const lines = file_contents.split('\n')
-            const commands = []
-            for(var line of lines){
-                line = line.trim()
-                if(line == ''){
-                    continue
+            try{
+                const file_contents = event.currentTarget.result
+                const lines = file_contents.split('\n')
+                const commands = []
+                for(var line of lines){
+                    line = line.trim()
+                    if(line == ''){
+                        continue
+                    }
+                    var command = line.match(/^[^ ]+ */)
+                    command = command[0]
+                    const argument_start = command.length
+                    var command = command.trim()
+
+                    var args = line.substring(argument_start)
+                    args = args.trim()
+
+                    if(args == ''){
+                        args = []
+                    }else{
+                        args = args.split(' ')
+                    }
+
+                    commands.push({
+                        instruction: command,
+                        args: args
+                    })
                 }
-                var command = line.match(/^[^ ]+ */)
-                command = command[0]
-                const argument_start = command.length
-                var command = command.trim()
 
-                var args = line.substring(argument_start)
-                args = args.trim()
+                const data = gpio_asm_compile(commands)
 
-                if(args == ''){
-                    args = []
-                }else{
-                    args = args.split(' ')
-                }
-
-                commands.push({
-                    instruction: command,
-                    args: args
-                })
+                console.log(data)
+                compiled_data_handler(data)
+            }catch(e){
+                set_gpio_asm_message(e)
             }
-
-            const data = gpio_asm_compile(commands)
-
-            console.log(data)
-            compiled_data_handler(data)
         }
     }
 
