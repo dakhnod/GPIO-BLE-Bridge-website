@@ -806,6 +806,7 @@ const module = (function () {
             // acceptAllDevices: true,
             optionalServices: [
                 '0000180a-0000-1000-8000-00805f9b34fb', // device information service
+                '0000180f-0000-1000-8000-00805f9b34fb', // battery service
                 '00001815-0000-1000-8000-00805f9b34fb', // Automation IO service
                 '9c100000-5cf1-8fa7-1549-01fdc1d171dc', // configuration service
                 'b1190000-2a74-d5a2-784f-c1cdb3862ab0' // gpioASM service
@@ -1572,6 +1573,10 @@ const module = (function () {
         set_digital_inputs_text('Device not connected')
         set_output_buttons_enabled(false)
 
+        set_device_name('-')
+        set_device_firmware_version('-')
+        set_device_battery_level('-')
+
         if (should_auto_reconnect && device != undefined) {
             setTimeout(reconnect_to_device, 3000, device)
         }
@@ -1753,6 +1758,7 @@ const module = (function () {
             if(uuid == '00002a26-0000-1000-8000-00805f9b34fb'){
                 const value = await characteristic.readValue()
                 device_firmware_version = new TextDecoder().decode(new Uint8Array(value.buffer))
+                set_device_firmware_version(device_firmware_version)
             }
         }
     }
@@ -1773,7 +1779,7 @@ const module = (function () {
                 await handle_analog_characteristic(characteristic)
             } else if (uuid == '9c100056-5cf1-8fa7-1549-01fdc1d171dc') {
                 handle_gpio_asm_characteristic(characteristic)
-            }
+            } 
         }
     }
 
@@ -1796,6 +1802,23 @@ const module = (function () {
             const uuid = characteristic.uuid
             if(uuid == 'b1190001-2a74-d5a2-784f-c1cdb3862ab0'){
                 characteristic_gpio_asm_data = characteristic
+            }
+        }
+    }
+
+    async function handle_battery_level_characteristic(characteristic) {
+        const data = await characteristic.readValue()
+        const level = data.getUint8()
+        set_device_battery_level(level)
+    }
+
+    async function handle_battery_service(service){
+        const characteristics = await service.getCharacteristics()
+
+        for(const characteristic of characteristics){
+            const uuid = characteristic.uuid
+            if(uuid == '00002a19-0000-1000-8000-00805f9b34fb'){
+                await handle_battery_level_characteristic(characteristic)
             }
         }
     }
@@ -1824,6 +1847,7 @@ const module = (function () {
 
         const service_handler_map = {
             '0000180a-0000-1000-8000-00805f9b34fb': handle_device_information_service,
+            '0000180f-0000-1000-8000-00805f9b34fb': handle_battery_service,
             '00001815-0000-1000-8000-00805f9b34fb': handle_automation_io_service,
             '9c100000-5cf1-8fa7-1549-01fdc1d171dc': handle_configuration_service,
             'b1190000-2a74-d5a2-784f-c1cdb3862ab0': handle_gpio_asm_service,
@@ -1991,11 +2015,19 @@ const module = (function () {
     }
 
     function set_device_status(status) {
-        $('#info_device_status').text(`Device status: ${status}`)
+        $('#info-device-status').text(`Device status: ${status}`)
     }
 
     function set_device_name(name) {
-        $('#info_device_name').text(`Device name: ${name}`)
+        $('#info-device-name').text(`Device name: ${name}`)
+    }
+
+    function set_device_battery_level(level) {
+        $('#info-device-battery-level').text(`Device battery level: ${level}%`)
+    }
+
+    function set_device_firmware_version(version) {
+        $('#info-device-firmware-version').text(`Device firmware version: ${version}`)
     }
 
     return {
