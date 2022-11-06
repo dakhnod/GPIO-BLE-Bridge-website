@@ -756,24 +756,50 @@ const module = (function () {
             repetitions = Number(repetitions)
         }
 
-        const data = []
+        const instructions = [{
+            instruction: 'label',
+            args: ['start']
+        }]
 
         for (var i = 0; i < filtered_states.length; i++) {
-            data.push(0b00000000) // instruction write digital
-            data.push(...encode_states(filtered_states[i]))
-            
-            data.push(0b00100000) // instruction sleep
-            data.push(...encode_varint(sequence_digital_steps[i].delay))
+            const states = filtered_states[i]
+            instructions.push({
+                instruction: 'write_digital',
+                args: [
+                    states.map(function(state){
+                        if(state == undefined){
+                            return '-'
+                        }
+                        if(state){
+                            return '1'
+                        }
+                        return '0'
+                    }).join('')
+                ]
+            })
+
+            const delay = sequence_digital_steps[i].delay
+            if(delay > 0){
+                instructions.push({
+                    instruction: 'sleep_ms',
+                    args: [delay]
+                })
+            }
         }
 
         if(repetitions == 0){
-            data.push(0b01000000) // instruction jump
-            data.push(...encode_varint(0)) // jump target beginning
+            instructions.push({
+                instruction: 'jump',
+                args: ['start']
+            })
         }else{
-            data.push(0b01001000)
-            data.push(...encode_varint(0))
-            data.push(...encode_varint(repetitions))
+            instructions.push({
+                instruction: 'jump_count',
+                args: ['start', repetitions - 1]
+            })
         }
+
+        const data = gpio_asm_compile(instructions)
 
         const max_packet_length = 19
 
