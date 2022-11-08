@@ -61,11 +61,11 @@ const module = (function () {
             .then(display_pre_select_dropdown)
     }
 
-    function pre_select_board(board){
+    function pre_select_board(board) {
         var pin_index = 0
         configured_pins = []
-        for(const pin of board.pins){
-            for(var j = pin_index; j < pin.pin; j++){
+        for (const pin of board.pins) {
+            for (var j = pin_index; j < pin.pin; j++) {
                 configured_pins.push({
                     pin: j,
                     function: 'disabled'
@@ -74,7 +74,7 @@ const module = (function () {
             pin_index = pin.pin + 1
             configured_pins.push(pin)
         }
-        for(; pin_index < 32; pin_index++){
+        for (; pin_index < 32; pin_index++) {
             configured_pins.push({
                 pin: pin_index,
                 function: 'disabled'
@@ -83,14 +83,14 @@ const module = (function () {
         display_pin_configuration_menu()
     }
 
-    function set_gpio_asm_message(message){
+    function set_gpio_asm_message(message) {
         $('#gpio-asm-file-info').text(message)
     }
 
-    function gpio_asm_create_pin_encoder(){
-        return function(states_string){
+    function gpio_asm_create_pin_encoder() {
+        return function (states_string) {
             const states = []
-            for(var i = 0; i < states_string.length; i++)[
+            for (var i = 0; i < states_string.length; i++) [
                 states.push({
                     'h': true,
                     '1': true,
@@ -101,35 +101,35 @@ const module = (function () {
                     '-': undefined
                 }[states_string[i].toLowerCase()])
             ]
-    
+
             return encode_states(states)
         }
     }
 
-    function gpio_asm_encode_uint_16(int_string){
+    function gpio_asm_encode_uint_16(int_string) {
         const value = Number(int_string)
         const array = new Uint16Array(1)
         array[0] = value
         return new Uint8Array(array.buffer)
     }
 
-    function gpio_asm_compile_command(command){
+    function gpio_asm_compile_command(command) {
         const gpio_asm_encode_input_pins = gpio_asm_create_pin_encoder()
         const gpio_asm_encode_output_pins = gpio_asm_create_pin_encoder()
 
-        function encode_pin_bytes_length(command, opcode_original){
-            function get_bytes_count_needed_for_bits(state_string){
+        function encode_pin_bytes_length(command, opcode_original) {
+            function get_bytes_count_needed_for_bits(state_string) {
                 return Math.ceil(state_string.length / 4)
             }
 
             const instruction = command.instruction
-            if(instruction == 'write_digital'){
+            if (instruction == 'write_digital') {
                 return (opcode_original | get_bytes_count_needed_for_bits(command.args[0]))
             }
-            if(instruction.startsWith('sleep_match')){
+            if (instruction.startsWith('sleep_match')) {
                 return (opcode_original | get_bytes_count_needed_for_bits(command.args[0]))
             }
-            if(instruction.startsWith('jump_match')){
+            if (instruction.startsWith('jump_match')) {
                 return (opcode_original | get_bytes_count_needed_for_bits(command.args[1]))
             }
         }
@@ -245,21 +245,21 @@ const module = (function () {
 
         const instruction = command.instruction
 
-        if(instruction == 'label'){
+        if (instruction == 'label') {
             // will take care of this later
             return []
         }
 
         const instruction_info = gpio_asm_instrutions[instruction]
 
-        if(instruction_info == undefined){
+        if (instruction_info == undefined) {
             throw `instruction ${instruction} unknown`
         }
 
         const bytes = []
 
-        const opcode = function(){
-            if(instruction_info.opcode_encoder == undefined){
+        const opcode = function () {
+            if (instruction_info.opcode_encoder == undefined) {
                 return instruction_info.instruction_bits
             }
             return instruction_info.opcode_encoder(command, instruction_info.instruction_bits)
@@ -269,7 +269,7 @@ const module = (function () {
 
         check_instruction_argument_length(command.instruction, instruction_info.argument_encoders.length, command.args.length)
 
-        for(var i = 0; i < command.args.length; i++){
+        for (var i = 0; i < command.args.length; i++) {
             bytes.push(
                 ...instruction_info.argument_encoders[i](command.args[i])
             )
@@ -278,25 +278,25 @@ const module = (function () {
         return bytes
     }
 
-    function create_upload_packet_data_handler(characteristic){
-        return async function(data){
-            try{
+    function create_upload_packet_data_handler(characteristic) {
+        return async function (data) {
+            try {
                 const packets = split_data_into_packets(data, 19)
-                for(var i = 0; i < packets.length; i++){
-                    set_gpio_asm_message(`sending packet ${i + 1}/${ packets.length}`)
+                for (var i = 0; i < packets.length; i++) {
+                    set_gpio_asm_message(`sending packet ${i + 1}/${packets.length}`)
                     const packet = packets[i]
                     await characteristic.writeValueWithResponse(new Uint8Array(packet))
                 }
                 set_gpio_asm_message('all packets sent.')
-            }catch(e){
+            } catch (e) {
                 set_gpio_asm_message(e)
             }
         }
     }
 
-    function on_button_gpio_asm_upload_click(){
-        try{
-            if(characteristic_gpio_asm_data == undefined){
+    function on_button_gpio_asm_upload_click() {
+        try {
+            if (characteristic_gpio_asm_data == undefined) {
                 throw 'no gpioASM data characteristic found'
             }
 
@@ -305,21 +305,21 @@ const module = (function () {
             )
 
             $('#gpio-asm-file-upload').val(null)
-        }catch(e){
+        } catch (e) {
             set_gpio_asm_message(e)
         }
     }
 
-    function check_instruction_argument_length(instruction, expected_argument_count, actual_argument_count){
-        if(actual_argument_count < expected_argument_count){
+    function check_instruction_argument_length(instruction, expected_argument_count, actual_argument_count) {
+        if (actual_argument_count < expected_argument_count) {
             throw `too few arguments for ${instruction}`
         }
-        if(actual_argument_count > expected_argument_count){
+        if (actual_argument_count > expected_argument_count) {
             throw `too many arguments for ${instruction}`
         }
     }
 
-    function gpio_asm_compile(instructions){
+    function gpio_asm_compile(instructions) {
         var current_offset = 0
 
         var labels = {}
@@ -333,23 +333,23 @@ const module = (function () {
             ]
         })
 
-        for(const instruction of instructions){
-            if(instruction.instruction == 'label'){
+        for (const instruction of instructions) {
+            if (instruction.instruction == 'label') {
                 labels[instruction.args[0]] = current_offset
                 continue
             }
             instruction.offset = current_offset
-            if(instruction.instruction.startsWith('jump')){
+            if (instruction.instruction.startsWith('jump')) {
                 current_offset += 2
                 instruction.compiled_length = 2
 
-                if(instruction.instruction == 'jump_count'){
+                if (instruction.instruction == 'jump_count') {
                     check_instruction_argument_length('jump_count', 2, instruction.args.length)
 
                     const length_count = encode_varint(Number(instruction.args[1])).length
                     current_offset += length_count
                     instruction.compiled_length += length_count
-                }else if(instruction.instruction.startsWith('jump_match_')){
+                } else if (instruction.instruction.startsWith('jump_match_')) {
                     check_instruction_argument_length(instruction.instruction, 2, instruction.args.length)
 
                     const encoder = gpio_asm_create_pin_encoder()
@@ -357,7 +357,7 @@ const module = (function () {
                     const length_count = encoder(instruction.args[1]).length
                     current_offset += length_count
                     instruction.compiled_length += length_count
-                }else{
+                } else {
                     check_instruction_argument_length('jump', 1, instruction.args.length)
                 }
 
@@ -368,13 +368,13 @@ const module = (function () {
             instruction.bytes = bytes
         }
 
-        for(const instruction of instructions){
-            if(!instruction.instruction.startsWith('jump')){
+        for (const instruction of instructions) {
+            if (!instruction.instruction.startsWith('jump')) {
                 continue
             }
             const target = instruction.args[0]
             const address = labels[target]
-            if(address == undefined){
+            if (address == undefined) {
                 throw `label ${target} unknown`
             }
 
@@ -382,9 +382,9 @@ const module = (function () {
 
             const args = [address]
 
-            if(instruction.instruction == 'jump_count'){
+            if (instruction.instruction == 'jump_count') {
                 args.push(Number(instruction.args[1]))
-            }else if(instruction.instruction.startsWith('jump_match_')){
+            } else if (instruction.instruction.startsWith('jump_match_')) {
                 args.push(instruction.args[1])
             }
 
@@ -395,17 +395,17 @@ const module = (function () {
             instruction.bytes = bytes
         }
 
-        while(true){
+        while (true) {
             // find first jump instruction with target address size wider than expected
-            const jump_mismatch_index = instructions.findIndex(instruction => 
-                    instruction.instruction.startsWith('jump') && 
-                    instruction.compiled_length != instruction.bytes.length
+            const jump_mismatch_index = instructions.findIndex(instruction =>
+                instruction.instruction.startsWith('jump') &&
+                instruction.compiled_length != instruction.bytes.length
             )
-            if(jump_mismatch_index == -1){
+            if (jump_mismatch_index == -1) {
                 // no mismatch found
                 break
             }
-            if(jump_mismatch_index == instructions.length){
+            if (jump_mismatch_index == instructions.length) {
                 // no instructions shifted since this is the last instruction
                 return
             }
@@ -419,8 +419,8 @@ const module = (function () {
             const affected_address_start = instructions[jump_mismatch_index + 1].offset
 
             // shift every following instructions offset by length dif
-            for(var i = (jump_mismatch_index + 1); i < instructions.length; i++){
-                if(instructions[i].instruction == 'label'){
+            for (var i = (jump_mismatch_index + 1); i < instructions.length; i++) {
+                if (instructions[i].instruction == 'label') {
                     continue
                 }
                 instructions[i].offset += length_dif
@@ -428,19 +428,19 @@ const module = (function () {
 
             // adjust target addresses of all jump instruction
             // that jump into the affected region
-            for(const instruction of instructions){
-                if(!instruction.instruction.startsWith('jump')){
+            for (const instruction of instructions) {
+                if (!instruction.instruction.startsWith('jump')) {
                     continue
                 }
                 var address = instruction.target_address
-                if(address < affected_address_start){
+                if (address < affected_address_start) {
                     continue
                 }
                 address += length_dif
                 instruction.target_address = address
 
                 const args = [address]
-                if(instruction.instruction == 'jump_count'){
+                if (instruction.instruction == 'jump_count') {
                     args.push(Number(instruction.args[1]))
                 }
 
@@ -455,8 +455,8 @@ const module = (function () {
 
         const data = []
 
-        for(const instruction of instructions){
-            if(instruction.instruction == 'label'){
+        for (const instruction of instructions) {
+            if (instruction.instruction == 'label') {
                 continue
             }
 
@@ -466,13 +466,13 @@ const module = (function () {
         return data
     }
 
-    function gpio_asm_file_read(compiled_data_handler){
+    function gpio_asm_file_read(compiled_data_handler) {
         const files = $('#gpio-asm-file-upload')[0].files
-        if(files.length == 0){
+        if (files.length == 0) {
             throw 'no file uploaded'
         }
         const file = files[0]
-        if(!file.name.endsWith('.gpioasm')){
+        if (!file.name.endsWith('.gpioasm')) {
             throw 'filename must end with .gpioasm'
         }
 
@@ -481,15 +481,15 @@ const module = (function () {
         reader.readAsText(file)
     }
 
-    function create_gpio_asm_file_load_handler(compiled_data_handler){
-        return function(event){
-            try{
+    function create_gpio_asm_file_load_handler(compiled_data_handler) {
+        return function (event) {
+            try {
                 const file_contents = event.currentTarget.result
                 const lines = file_contents.split('\n')
                 const commands = []
-                for(var line of lines){
+                for (var line of lines) {
                     line = line.trim()
-                    if(line == ''){
+                    if (line == '') {
                         continue
                     }
                     var command = line.match(/^[^ ]+ */)
@@ -500,9 +500,9 @@ const module = (function () {
                     var args = line.substring(argument_start)
                     args = args.trim()
 
-                    if(args == ''){
+                    if (args == '') {
                         args = []
-                    }else{
+                    } else {
                         args = args.split(' ')
                     }
 
@@ -516,20 +516,20 @@ const module = (function () {
 
                 console.log(data)
                 compiled_data_handler(data)
-            }catch(e){
+            } catch (e) {
                 set_gpio_asm_message(e)
             }
         }
     }
 
-    function handle_gpio_asm_upload(event){
+    function handle_gpio_asm_upload(event) {
 
     }
 
-    function display_pre_select_dropdown(boards){
+    function display_pre_select_dropdown(boards) {
         const container = $('#container-pre-select')
 
-        for(const board of boards){
+        for (const board of boards) {
             const html = `
             <div class="pre-select-option m-2">
                 <h4>${board.label}</h4>
@@ -557,17 +557,17 @@ const module = (function () {
         $('#button-send-conn-params-configuration').text('Send configuration to device')
     }
 
-    function create_input_range_limiter(min, max){
-        return function(event){
+    function create_input_range_limiter(min, max) {
+        return function (event) {
             const target = event.currentTarget
             const value = target.value
-            if(value == ''){
+            if (value == '') {
                 return
             }
             const num = Number(value)
-            if(num > max){
+            if (num > max) {
                 target.value = max
-            }else if(num < min){
+            } else if (num < min) {
                 target.value = min
             }
         }
@@ -719,7 +719,7 @@ const module = (function () {
         */
     }
 
-    function split_data_into_packets(data, max_packet_length){
+    function split_data_into_packets(data, max_packet_length) {
         const packets = []
         const packets_needed = Math.ceil(data.length / max_packet_length)
 
@@ -766,11 +766,11 @@ const module = (function () {
             instructions.push({
                 instruction: 'write_digital',
                 args: [
-                    states.map(function(state){
-                        if(state == undefined){
+                    states.map(function (state) {
+                        if (state == undefined) {
                             return '-'
                         }
-                        if(state){
+                        if (state) {
                             return '1'
                         }
                         return '0'
@@ -779,7 +779,7 @@ const module = (function () {
             })
 
             const delay = sequence_digital_steps[i].delay
-            if(delay > 0){
+            if (delay > 0) {
                 instructions.push({
                     instruction: 'sleep_ms',
                     args: [delay]
@@ -787,12 +787,12 @@ const module = (function () {
             }
         }
 
-        if(repetitions == 0){
+        if (repetitions == 0) {
             instructions.push({
                 instruction: 'jump',
                 args: ['start']
             })
-        }else{
+        } else {
             instructions.push({
                 instruction: 'jump_count',
                 args: ['start', repetitions - 1]
@@ -893,7 +893,7 @@ const module = (function () {
         return bytes
     }
 
-    function encode_analog_values(analog_values){
+    function encode_analog_values(analog_values) {
         analog_values = analog_values.map(value => (value == undefined) ? 0xffff : value)
         const array = new Uint16Array(analog_values)
         return new Uint8Array(array.buffer)
@@ -937,9 +937,9 @@ const module = (function () {
 
         if (pin.function == 'output') {
             byte = 0b0000
-            if(pin.function_output == 'analog'){
+            if (pin.function_output == 'analog') {
                 byte |= 0b0100
-            }else if (pin.default_high) {
+            } else if (pin.default_high) {
                 byte |= 0b0010
             }
         } else if (pin.function == 'input') {
@@ -1045,9 +1045,9 @@ const module = (function () {
                 function_output: 'analog',
                 invert: ((bits & 0b0001) == 0b0001)
             }
-            if((bits & 0b0100) == 0b0000){
+            if ((bits & 0b0100) == 0b0000) {
                 pin.function_output = 'digital',
-                pin.default_high = ((bits & 0b0010) == 0b0010)
+                    pin.default_high = ((bits & 0b0010) == 0b0010)
             }
             return pin
         }
@@ -1184,16 +1184,16 @@ const module = (function () {
 
             steps_container.append(child)
 
-            for(var j = 0; j < output_analog_pins.length; j++){
+            for (var j = 0; j < output_analog_pins.length; j++) {
                 const pin = output_analog_pins[j]
                 var label = '?'
 
-                if(pin.pin != undefined){
+                if (pin.pin != undefined) {
                     label = pin.pin
                 }
 
                 var value = ''
-                if(step.output_analog_values[j] != undefined){
+                if (step.output_analog_values[j] != undefined) {
                     value = step.output_analog_values[j]
                 }
 
@@ -1211,15 +1211,15 @@ const module = (function () {
                 $('#pwm-duty-cycle', form).on('input', event => {
                     const input = event.currentTarget
                     const value = input.value
-                    if(value == ''){
+                    if (value == '') {
                         step.output_analog_values[current_value_index] = undefined
                         return
                     }
                     var duty_cycle = Number(value)
-                    if(duty_cycle < 0){
+                    if (duty_cycle < 0) {
                         duty_cycle = 0
                         input.value = duty_cycle
-                    }else if(duty_cycle > 20000){
+                    } else if (duty_cycle > 20000) {
                         duty_cycle = 20000
                         input.value = duty_cycle
                     }
@@ -1388,7 +1388,7 @@ const module = (function () {
                     create_pin_configuration_dropdown(container, pin, 'pull', pulls)
                 } else {
                     create_pin_configuration_dropdown(container, pin, 'function_output', functions_output)
-                    if(pin.function_output != 'analog'){
+                    if (pin.function_output != 'analog') {
                         create_pin_configuration_dropdown(container, pin, 'default_high', default_high)
                     }
                 }
@@ -1472,17 +1472,17 @@ const module = (function () {
         }
     }
 
-    function display_outputs_analog(){
+    function display_outputs_analog() {
         const container = $('#outputs-analog-container')
         container.empty()
-        for(const pin of output_analog_pins){
+        for (const pin of output_analog_pins) {
             var label = '?'
             var value = ''
 
-            if(pin.pin != undefined){
+            if (pin.pin != undefined) {
                 label = pin.pin
             }
-            if(pin.value != undefined){
+            if (pin.value != undefined) {
                 value = pin.value
             }
 
@@ -1503,13 +1503,13 @@ const module = (function () {
 
             edit_value.on('input', create_input_range_limiter(0, 20000))
 
-            button.click(async function(event) {
+            button.click(async function (event) {
                 const value = edit_value.val()
-                if(value == ''){
+                if (value == '') {
                     return
                 }
 
-                if(pin.output_analog_characteristic == undefined){
+                if (pin.output_analog_characteristic == undefined) {
                     throw 'could not find analog output characteristic'
                 }
 
@@ -1718,13 +1718,13 @@ const module = (function () {
         }
     }
 
-    async function handle_output_analog_characteristic(characteristic){
+    async function handle_output_analog_characteristic(characteristic) {
         const analog_pin = {
             output_analog_characteristic: characteristic
         }
-        if(characteristic.properties.read){
+        if (characteristic.properties.read) {
             const response = await characteristic.readValue()
-            if(response.byteLength == 2){
+            if (response.byteLength == 2) {
                 analog_pin.value = response.getUint16(0, true)
             }
         }
@@ -1733,7 +1733,7 @@ const module = (function () {
 
     async function handle_analog_characteristic(characteristic) {
         const is_output = characteristic.properties.write
-        if(is_output){
+        if (is_output) {
             await handle_output_analog_characteristic(characteristic)
         }
     }
@@ -1777,11 +1777,11 @@ const module = (function () {
         digital_output_info.text(text)
     }
 
-    async function handle_device_information_service(service){
+    async function handle_device_information_service(service) {
         const characteristics = await service.getCharacteristics()
-        for(const characteristic of characteristics){
+        for (const characteristic of characteristics) {
             const uuid = characteristic.uuid
-            if(uuid == '00002a26-0000-1000-8000-00805f9b34fb'){
+            if (uuid == '00002a26-0000-1000-8000-00805f9b34fb') {
                 const value = await characteristic.readValue()
                 device_firmware_version = new TextDecoder().decode(new Uint8Array(value.buffer))
                 set_device_firmware_version(device_firmware_version)
@@ -1789,11 +1789,11 @@ const module = (function () {
         }
     }
 
-    async function handle_automation_io_service(service){
+    async function handle_automation_io_service(service) {
         var characteristics = null
-        try{
+        try {
             characteristics = await service.getCharacteristics()
-        }catch(e){
+        } catch (e) {
             console.error('error getting AIO characteristics. Probably no pins configured. ' + e)
             return
         }
@@ -1805,11 +1805,11 @@ const module = (function () {
                 await handle_analog_characteristic(characteristic)
             } else if (uuid == '9c100056-5cf1-8fa7-1549-01fdc1d171dc') {
                 handle_gpio_asm_characteristic(characteristic)
-            } 
+            }
         }
     }
 
-    async function handle_configuration_service(service){
+    async function handle_configuration_service(service) {
         const characteristics = await service.getCharacteristics()
         for (const characteristic of characteristics) {
             const uuid = characteristic.uuid
@@ -1821,12 +1821,12 @@ const module = (function () {
         }
     }
 
-    async function handle_gpio_asm_service(service){
+    async function handle_gpio_asm_service(service) {
         const characteristics = await service.getCharacteristics()
 
-        for(const characteristic of characteristics){
+        for (const characteristic of characteristics) {
             const uuid = characteristic.uuid
-            if(uuid == 'b1190001-2a74-d5a2-784f-c1cdb3862ab0'){
+            if (uuid == 'b1190001-2a74-d5a2-784f-c1cdb3862ab0') {
                 characteristic_gpio_asm_data = characteristic
             }
         }
@@ -1838,30 +1838,28 @@ const module = (function () {
         set_device_battery_level(level)
     }
 
-    async function handle_battery_service(service){
+    async function handle_battery_service(service) {
         const characteristics = await service.getCharacteristics()
 
-        for(const characteristic of characteristics){
+        for (const characteristic of characteristics) {
             const uuid = characteristic.uuid
-            if(uuid == '00002a19-0000-1000-8000-00805f9b34fb'){
+            if (uuid == '00002a19-0000-1000-8000-00805f9b34fb') {
                 await handle_battery_level_characteristic(characteristic)
             }
         }
     }
 
-    function check_firmware_version(){
-        if(device_firmware_version == undefined){
-            alert('Could not read chip firmware version. Continue at your own risk as the chip might not be compatible.')
+    function check_firmware_version() {
+        if (device_firmware_version == undefined) {
+            alert('Could not read chip firmware version.\n\nContinue at your own risk as the chip might not be compatible.')
             return
         }
 
-        const supported_firmware_versions = ['0.5.0']
-
-        if(supported_firmware_versions.includes(device_firmware_version)){
+        if (device_firmware_version.startsWith('0.5.')) {
             return
         }
 
-        alert(`Device firmware version: ${device_firmware_version}.\nThe supported firmware version list is ${supported_firmware_versions.join(', ')}.\n\nContinue at your own risk or update your firmware.`)
+        alert(`Device firmware version: ${device_firmware_version}.\nSupported firmwares are 0.5.x .\n\nContinue at your own risk or update your firmware.`)
     }
 
     async function on_bluetooth_gatt_connected(gatt) {
@@ -1879,9 +1877,9 @@ const module = (function () {
             'b1190000-2a74-d5a2-784f-c1cdb3862ab0': handle_gpio_asm_service,
         }
 
-        for(const service of services){
+        for (const service of services) {
             const handler = service_handler_map[service.uuid]
-            if(handler == undefined){
+            if (handler == undefined) {
                 continue
             }
             await handler(service)
@@ -1962,7 +1960,7 @@ const module = (function () {
 
         for (const configured_pin of configured_pins) {
             if (configured_pin.function == 'output') {
-                if(configured_pin.function_output == 'digital'){
+                if (configured_pin.function_output == 'digital') {
                     if (output_digital_pin_index > output_digital_pins.length) {
                         console.error('Pin matching overflow')
                         continue
@@ -1971,7 +1969,7 @@ const module = (function () {
                     output_digital_pin_index++
                     continue
                 }
-                if(configured_pin.function_output == 'analog'){
+                if (configured_pin.function_output == 'analog') {
                     if (output_analog_pin_index > output_analog_pins.length) {
                         console.error('Pin matching overflow')
                         continue
@@ -1986,7 +1984,7 @@ const module = (function () {
 
     async function handle_pin_configuration_characteristic(characteristic) {
         set_device_status('reading configuration...')
-        if(configured_pins.length > 0){
+        if (configured_pins.length > 0) {
             console.log('pin configuratioin already known, reading anyways')
             // return;
         }
