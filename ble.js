@@ -738,10 +738,19 @@ const module = (function () {
 
     async function on_sequence_digital_send_click(event) {
         for (const step of sequence_digital_steps) {
-            if (step.delay <= 0) {
-                alert('step delays have to be reater zero')
+            if (step.delay < 0) {
+                alert('step delays have to be greater or equal to zero')
                 return
             }
+        }
+
+        const device_id = gatt_server.device.id
+        const key = `sequence_${device_id}`
+        const value = JSON.stringify(sequence_digital_steps)
+        if(localStorage != undefined){
+            localStorage.setItem(key, value)
+        }else{
+            console.error('no access to localstorage')
         }
 
         const unfiltered_states = sequence_digital_steps.map(step => step.states)
@@ -1900,6 +1909,20 @@ const module = (function () {
             set_digital_outputs_text('')
             $('#gpio-asm-digital-output-count').val(output_pin_count)
         }
+
+        (function(){
+            if(localStorage == undefined){
+                console.error('localStorage not availbale')
+                return
+            }
+            const key = `sequence_${gatt.device.id}`
+            const value = localStorage.getItem(key)
+            if(value == undefined){
+                return
+            }
+            sequence_digital_steps = JSON.parse(value)
+        })()
+
 
         for (const step of sequence_digital_steps) {
             if (step.states.length > output_pin_count) {
