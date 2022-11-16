@@ -1,5 +1,21 @@
-import { gpio_asm_compile, set_gpio_asm_message, gpio_asm_file_read } from "./modules/gpioasm.js"
-import { set_device_battery_level, set_device_firmware_version, set_device_name, set_device_status } from "./modules/ui.js"
+import { 
+    gpio_asm_compile, 
+    set_gpio_asm_message, 
+    gpio_asm_file_read 
+} from "./modules/gpioasm.js"
+
+import { 
+    set_device_battery_level, 
+    set_device_firmware_version, 
+    set_device_name, 
+    set_device_status 
+} from "./modules/ui.js"
+
+import { 
+    filter_states,
+    encode_states,
+    encode_pin_configuration
+} from "./modules/encoders.js"
 
 const module = (function () {
     var is_device_connected = false
@@ -384,6 +400,18 @@ const module = (function () {
                     }).join('')
                 ]
             })
+
+            const analog_values = filtered_output_analog_values[i]
+            for(var j = 0; j < analog_values.length; j++){
+                const value = analog_values[j]
+                if(value == undefined){
+                    continue
+                }
+                instructions.push({
+                    instruction: `write_analog_channel_${j}`,
+                    args: [value]
+                })
+            }
 
             const delay = sequence_digital_steps[i].delay
             if (delay > 0) {
