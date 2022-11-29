@@ -358,10 +358,10 @@ const module = (function () {
             }
         }
 
-        const device_id = gatt_server.device.id
-        const key = `sequence_${device_id}`
-        const value = JSON.stringify(sequence_digital_steps)
         if(localStorage != undefined){
+            const device_name = gatt_server.device.name
+            const key = `sequence_${device_name}`
+            const value = JSON.stringify(sequence_digital_steps)
             localStorage.setItem(key, value)
         }else{
             console.error('no access to localstorage')
@@ -466,6 +466,7 @@ const module = (function () {
             ],
             // acceptAllDevices: true,
             optionalServices: [
+                // '00001800-0000-1000-8000-00805f9b34fb', // generic attribute service
                 '0000180a-0000-1000-8000-00805f9b34fb', // device information service
                 '0000180f-0000-1000-8000-00805f9b34fb', // battery service
                 '00001815-0000-1000-8000-00805f9b34fb', // Automation IO service
@@ -518,8 +519,6 @@ const module = (function () {
     }
 
     function on_bluetooth_device_selected(device) {
-        set_device_name(device.name)
-
         device.addEventListener('gattserverdisconnected', () => {
             handle_device_disconnect(device)
         })
@@ -1365,6 +1364,8 @@ const module = (function () {
         gatt_server = gatt
         display_device_information()
 
+        set_device_name(gatt.device.name)
+
         var services = await gatt.getPrimaryServices()
 
         const service_handler_map = {
@@ -1404,7 +1405,7 @@ const module = (function () {
                 console.error('localStorage not availbale')
                 return
             }
-            const key = `sequence_${gatt.device.id}`
+            const key = `sequence_${gatt.device.name}`
             const value = localStorage.getItem(key)
             if(value == undefined){
                 return
