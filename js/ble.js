@@ -1049,7 +1049,7 @@ const module = (function () {
         const possible_pins = bytes.length * 4
         for (var i = 0; i < possible_pins; i++) {
             const byte_index = Math.floor(i / 4)
-            const bit_shift = 6 - ((i * 2) % 8)
+            const bit_shift = ((i * 2) % 8)
 
             const pin_bits = (bytes[byte_index] >> bit_shift) & 0b11
             states.push({

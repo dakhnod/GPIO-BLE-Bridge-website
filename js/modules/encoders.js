@@ -143,7 +143,7 @@ export function encode_states(states) {
         }
 
         const byte_index = Math.floor(i / 4)
-        const bit_shift = 6 - ((i * 2) % 8)
+        const bit_shift = ((i * 2) % 8)
 
         if (state) {
             bytes[byte_index] &= ~(0b10 << bit_shift)
