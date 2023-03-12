@@ -1352,11 +1352,11 @@ const module = (function () {
             return
         }
 
-        if (device_firmware_version.startsWith('0.5.')) {
+        if (device_firmware_version.startsWith('0.6.')) {
             return
         }
 
-        alert(`Device firmware version: ${device_firmware_version}.\nSupported firmwares are 0.5.x .\n\nContinue at your own risk or update your firmware.`)
+        alert(`Device firmware version: ${device_firmware_version}.\nSupported firmwares are 0.6.x .\n\nContinue at your own risk or update your firmware.`)
     }
 
     async function on_bluetooth_gatt_connected(gatt) {
