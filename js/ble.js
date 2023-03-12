@@ -1049,7 +1049,7 @@ const module = (function () {
         const possible_pins = bytes.length * 4
         for (var i = 0; i < possible_pins; i++) {
             const byte_index = Math.floor(i / 4)
-            const bit_shift = 6 - ((i * 2) % 8)
+            const bit_shift = ((i * 2) % 8)
 
             const pin_bits = (bytes[byte_index] >> bit_shift) & 0b11
             states.push({
@@ -1352,11 +1352,11 @@ const module = (function () {
             return
         }
 
-        if (device_firmware_version.startsWith('0.5.')) {
+        if (device_firmware_version.startsWith('0.6.')) {
             return
         }
 
-        alert(`Device firmware version: ${device_firmware_version}.\nSupported firmwares are 0.5.x .\n\nContinue at your own risk or update your firmware.`)
+        alert(`Device firmware version: ${device_firmware_version}.\nSupported firmwares are 0.6.x .\n\nContinue at your own risk or update your firmware.`)
     }
 
     async function on_bluetooth_gatt_connected(gatt) {
