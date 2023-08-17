@@ -152,5 +152,5 @@ export function encode_states(states) {
         }
     }
 
-    return bytes
+    return bytes.reverse()
 }

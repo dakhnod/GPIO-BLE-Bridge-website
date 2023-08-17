@@ -1051,7 +1051,7 @@ const module = (function () {
             const byte_index = Math.floor(i / 4)
             const bit_shift = ((i * 2) % 8)
 
-            const pin_bits = (bytes[byte_index] >> bit_shift) & 0b11
+            const pin_bits = (bytes[bytes.length - byte_index - 1] >> bit_shift) & 0b11
             states.push({
                 index: i,
                 is_high: {
