@@ -427,7 +427,7 @@ const module = (function () {
                 instruction: 'jump',
                 args: ['start']
             })
-        } else {
+        } else if(repetitions > 1) {
             instructions.push({
                 instruction: 'jump_count',
                 args: ['start', repetitions - 1]
@@ -1352,11 +1352,13 @@ const module = (function () {
             return
         }
 
-        if (device_firmware_version.startsWith('0.6.')) {
+	const expected = '0.7.'
+
+        if (device_firmware_version.startsWith(expected)) {
             return
         }
 
-        alert(`Device firmware version: ${device_firmware_version}.\nSupported firmwares are 0.6.x .\n\nContinue at your own risk or update your firmware.`)
+        alert(`Device firmware version: ${device_firmware_version}.\nSupported firmwares are ${expected}x .\n\nContinue at your own risk or update your firmware.`)
     }
 
     async function on_bluetooth_gatt_connected(gatt) {
