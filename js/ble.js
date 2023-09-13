@@ -1236,7 +1236,7 @@ const module = (function () {
     }
 
     async function handle_digital_characteristic(characteristic) {
-        const is_output = characteristic.properties.write
+        const is_output = (characteristic.uuid == '00002a57-0000-1000-8000-00805f9b34fb') || characteristic.properties.write
         if (is_output) {
             try {
                 await handle_digital_output_characteristic(characteristic);
@@ -1296,7 +1296,7 @@ const module = (function () {
         }
         for (const characteristic of characteristics) {
             const uuid = characteristic.uuid
-            if (uuid == '00002a56-0000-1000-8000-00805f9b34fb') {
+            if (['00002a56-0000-1000-8000-00805f9b34fb','00002a57-0000-1000-8000-00805f9b34fb'].includes(uuid)) {
                 await handle_digital_characteristic(characteristic)
             } else if (uuid == '00002a58-0000-1000-8000-00805f9b34fb') {
                 await handle_analog_characteristic(characteristic)
@@ -1352,7 +1352,7 @@ const module = (function () {
             return
         }
 
-	const expected = '0.7.'
+	const expected = '0.8.'
 
         if (device_firmware_version.startsWith(expected)) {
             return
