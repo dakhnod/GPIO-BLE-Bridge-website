@@ -164,5 +164,88 @@
                 "invert": false
             }
         ]
+    },
+    {
+        "label": "HOLYIOT 17095",
+        "image_url": "http://www.holyiot.com/tp/2021070517063145683.jpg",
+        "pins": [
+            {
+                "pin": 0,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 1,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 5,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 6,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 8,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 15,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 18,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 21,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 28,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 29,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            },
+            {
+                "pin": 30,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": false
+            }
+        ]
     }
 ]
