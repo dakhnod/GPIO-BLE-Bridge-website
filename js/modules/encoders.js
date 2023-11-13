@@ -145,11 +145,19 @@ export function encode_states(states) {
         const byte_index = Math.floor(i / 4)
         const bit_shift = ((i * 2) % 8)
 
-        if (state) {
-            bytes[byte_index] &= ~(0b10 << bit_shift)
-        } else {
-            bytes[byte_index] &= ~(0b11 << bit_shift)
+        let bits = {
+            '0': 0b00,
+            '1': 0b01,
+            'i': 0b10,
+            '-': 0b11
+        }[state]
+
+        if(bits == undefined){
+            throw `Unknown state: ${state}`
         }
+        
+        bits = (~bits) & 0b11
+        bytes[byte_index] &= ~(bits << bit_shift)
     }
 
     return bytes.reverse()

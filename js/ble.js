@@ -905,8 +905,8 @@ const module = (function () {
             throw 'Digital output characteristic not present'
         }
 
-        const states = Array(output_digital_pins.length).fill(undefined)
-        states[index] = state
+        const states = Array(output_digital_pins.length).fill('-')
+        states[index] = state ? '1': '0'
 
         const payload = encode_states(states)
 

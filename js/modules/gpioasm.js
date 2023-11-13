@@ -219,20 +219,7 @@ export function set_gpio_asm_message(message) {
 
 function gpio_asm_create_pin_encoder() {
     return function (states_string) {
-        const states = []
-        for (var i = 0; i < states_string.length; i++) [
-            states.push({
-                'h': true,
-                '1': true,
-                'l': false,
-                '0': false,
-                'i': undefined,
-                'x': undefined,
-                '-': undefined
-            }[states_string[i].toLowerCase()])
-        ]
-
-        return encode_states(states)
+        return encode_states(Array.from(states_string))
     }
 }
 
