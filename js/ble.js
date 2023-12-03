@@ -46,7 +46,9 @@ const module = (function () {
     var last_current_sequence = null
 
     function init() {
-        if (navigator.bluetooth == undefined) {
+        const userAgent = navigator.userAgent.toLowerCase()
+        const isCrawler = userAgent.includes('googlebot') || userAgent.includes('google-inspectiontool')
+        if (!isCrawler && navigator.bluetooth == undefined) {
             alert('your browser is not supported. Please chose one from the following compatibility matrix.')
             document.location = 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API#browser_compatibility'
 
