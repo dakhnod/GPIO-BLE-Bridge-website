@@ -46,11 +46,9 @@ const module = (function () {
     var last_current_sequence = null
 
     function init() {
-        const isCrawler = /bot|crawler|spider|crawling|inspection.?tool/i.test(navigator.userAgent)
-        if (!isCrawler && navigator.bluetooth == undefined) {
-            alert('your browser is not supported. Please chose one from the following compatibility matrix.')
-            document.location = 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Bluetooth_API#browser_compatibility'
-
+        if (navigator.bluetooth == undefined) {
+            $('#button_bluetooth_connect').prop('disabled', true)
+            $('#bluetooth-hint').show()
             return
         }
 
