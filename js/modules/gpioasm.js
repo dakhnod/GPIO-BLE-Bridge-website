@@ -194,6 +194,8 @@ function create_gpio_asm_file_load_handler(compiled_data_handler) {
             compiled_data_handler(data)
         } catch (e) {
             set_gpio_asm_message(e)
+
+            $('#gpio-asm-upload-button').prop('disabled', true)
         }
     }
 }

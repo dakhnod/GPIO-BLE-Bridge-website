@@ -45,6 +45,8 @@ const module = (function () {
 
     var last_current_sequence = null
 
+    let gpioasmPackets = undefined
+
     function init() {
         if (navigator.bluetooth == undefined) {
             $('#button_bluetooth_connect').prop('disabled', true)
@@ -118,25 +120,51 @@ const module = (function () {
         }
     }
 
-    function on_button_gpio_asm_upload_click() {
+    async function on_button_gpio_asm_upload_click() {
         try {
             if (characteristic_gpio_asm_data == undefined) {
-                // throw 'no gpioASM data characteristic found'
+                throw 'no gpioASM data characteristic found'
             }
 
-            gpio_asm_file_read(
-                create_upload_packet_data_handler(characteristic_gpio_asm_data)
-            )
+            if (gpioasmPackets == undefined) {
+                throw 'gpioASM not compiled yet'
+            }
 
-            $('#gpio-asm-file-upload').val(null)
+            for (var i = 0; i < gpioasmPackets.length; i++) {
+                set_gpio_asm_message(`sending packet ${i + 1}/${gpioasmPackets.length}`)
+                const packet = gpioasmPackets[i]
+                await characteristic_gpio_asm_data.writeValueWithResponse(new Uint8Array(packet))
+            }
+            set_gpio_asm_message('all packets sent.')
         } catch (e) {
             set_gpio_asm_message(e)
         }
     }
 
+    function bytesToHex(data) {
+        return data
+            .map((byte) => byte.toString(16).padStart(2, '0'))
+            .join('')
+    }
 
     function handle_gpio_asm_upload(event) {
+        try {
+            gpio_asm_file_read((data) => {
+                const fileInfoContainer = $('#gpio-asm-file-info')
+                fileInfoContainer.text(`Compiled gpioASM code: ${bytesToHex(data)}`)
+                gpioasmPackets = split_data_into_packets(data, 19)
+                for (const i in gpioasmPackets) {
+                    fileInfoContainer.append(`<div>packet #${i}: ${bytesToHex(gpioasmPackets[i])}</div>`)
+                }
+            })
+            $('#gpio-asm-upload-button').prop('disabled', false)
+        } catch (e) {
+            set_gpio_asm_message(e)
+            console.log('disabling button')
+            $('#gpio-asm-upload-button').prop('disabled', true)
+        }
 
+        $('#gpio-asm-file-upload').val(null)
     }
 
     function display_pre_select_dropdown(boards) {
@@ -440,7 +468,6 @@ const module = (function () {
         const packets = split_data_into_packets(data, max_packet_length);
 
         for (const packet of packets) {
-            console.log(packet)
             if (characteristic_gpio_asm_data != null) {
                 const result = await characteristic_gpio_asm_data.writeValueWithResponse(new Uint8Array(packet))
             }
