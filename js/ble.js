@@ -860,6 +860,9 @@ const module = (function () {
 
             button.click(event => {
                 pin[pin_field] = option.value
+                if(pin_field === 'pull') {
+                    pin.invert = (option.value == 'pullup')
+                }
                 // dropdown_button.text(option.label)
                 display_pin_configuration_menu()
             })
