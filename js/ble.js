@@ -48,6 +48,8 @@ const module = (function () {
     let gpioasmPackets = undefined
 
     function init() {
+        $('#gpio-asm-file-upload').change(handle_gpio_asm_upload)
+        
         if (navigator.bluetooth == undefined) {
             $('#button_bluetooth_connect').prop('disabled', true)
             $('#bluetooth-hint').show()
@@ -58,7 +60,6 @@ const module = (function () {
         $('#button_send_configuration').click(on_button_send_configuraion_click)
         $('#button-sequence-digital-send').click(on_sequence_digital_send_click)
         $('#button-send-conn-params-configuration').click(send_connection_parameters)
-        $('#gpio-asm-file-upload').change(handle_gpio_asm_upload)
         $('#gpio-asm-upload-button').click(on_button_gpio_asm_upload_click)
         $('#button-sequence-add-step').click((_) => {
             insert_step(0)
