@@ -1479,6 +1479,16 @@ const module = (function () {
             return
         }
 
+        let configured_input_pin_count = 0
+
+        for(const configured_pin of configured_pins) {
+            if (configured_pin.function == 'input') {
+                configured_input_pin_count++
+            }
+        }
+
+        const preconfigured_pin_count = input_pins.length - configured_input_pin_count
+
         var input_pin_index = 0
         for (const configured_pin of configured_pins) {
             if (input_pin_index > input_pins.length) {
@@ -1486,7 +1496,7 @@ const module = (function () {
                 return
             }
             if (configured_pin.function == 'input') {
-                input_pins[input_pin_index].pin = configured_pin.pin
+                input_pins[input_pin_index + preconfigured_pin_count].pin = configured_pin.pin
                 input_pin_index++
             }
         }
@@ -1503,6 +1513,18 @@ const module = (function () {
         var output_digital_pin_index = 0
         var output_analog_pin_index = 0
 
+        let configured_output_digital_pin_count = 0
+
+        for(const configured_pin of configured_pins) {
+            if (configured_pin.function == 'output') {
+                if (configured_pin.function_output == 'digital') {
+                    configured_output_digital_pin_count++
+                }
+            }
+        }
+
+        const preconfigured_pin_count = output_digital_pins.length - configured_output_digital_pin_count
+
         for (const configured_pin of configured_pins) {
             if (configured_pin.function == 'output') {
                 if (configured_pin.function_output == 'digital') {
@@ -1510,7 +1532,7 @@ const module = (function () {
                         console.error('Pin matching overflow')
                         continue
                     }
-                    output_digital_pins[output_digital_pin_index].pin = configured_pin.pin
+                    output_digital_pins[output_digital_pin_index + preconfigured_pin_count].pin = configured_pin.pin
                     output_digital_pin_index++
                     continue
                 }
