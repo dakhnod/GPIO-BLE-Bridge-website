@@ -148,16 +148,18 @@ const module = (function () {
             .join('')
     }
 
+    function display_gpioasm_code(data) {
+        const fileInfoContainer = $('#gpio-asm-file-info')
+        fileInfoContainer.text(`Compiled gpioASM code: ${bytesToHex(data)}`)
+        gpioasmPackets = split_data_into_packets(data, 19)
+        for (const i in gpioasmPackets) {
+            fileInfoContainer.append(`<div>packet #${i}: ${bytesToHex(gpioasmPackets[i])}</div>`)
+        }
+    }
+
     function handle_gpio_asm_upload(event) {
         try {
-            gpio_asm_file_read((data) => {
-                const fileInfoContainer = $('#gpio-asm-file-info')
-                fileInfoContainer.text(`Compiled gpioASM code: ${bytesToHex(data)}`)
-                gpioasmPackets = split_data_into_packets(data, 19)
-                for (const i in gpioasmPackets) {
-                    fileInfoContainer.append(`<div>packet #${i}: ${bytesToHex(gpioasmPackets[i])}</div>`)
-                }
-            })
+            gpio_asm_file_read(display_gpioasm_code)
             $('#gpio-asm-upload-button').prop('disabled', false)
         } catch (e) {
             set_gpio_asm_message(e)
@@ -397,7 +399,7 @@ const module = (function () {
 
         const unfiltered_states = sequence_digital_steps.map(step => step.states)
         const unfiltered_output_analog_values = sequence_digital_steps.map(step => step.output_analog_values)
-        const filtered_states = filter_states(unfiltered_states)
+        const filtered_states = unfiltered_states
         const filtered_output_analog_values = filter_states(unfiltered_output_analog_values)
 
         var repetitions = $('#sequence-repetition-count').val()
@@ -418,8 +420,8 @@ const module = (function () {
                 instruction: 'write_digital',
                 args: [
                     states.map(function (state) {
-                        if (state == undefined) {
-                            return '-'
+                        if (state == null) {
+                            return 'i'
                         }
                         if (state) {
                             return '1'
@@ -463,6 +465,8 @@ const module = (function () {
         }
 
         const data = gpio_asm_compile(instructions)
+
+        display_gpioasm_code(data)
 
         const max_packet_length = 19
 
@@ -798,18 +802,26 @@ const module = (function () {
 
                 if (step.states[j]) {
                     button[0].classList.add('pin-high')
+                }else if(step.states[j] === null) {
+                    button[0].classList.add('pin-high-impedance')
                 }
 
                 button.click(j, (event) => {
                     const states = step.states
                     const index = event.data
                     states[index] = !states[index]
+
+                    event.currentTarget.classList.remove('pin-high-impedance')
                     if (states[index]) {
                         event.currentTarget.classList.add('pin-high')
                     } else {
                         event.currentTarget.classList.remove('pin-high')
                     }
+                })
 
+                button.on('contextmenu', j, (event) => {
+                    event.currentTarget.classList.add('pin-high-impedance')
+                    step.states[event.data] = null
                 })
             }
 
