@@ -247,5 +247,32 @@
                 "invert": false
             }
         ]
+    },
+    {
+        "label": "nRF52840 dongle",
+        "image_url": "https://www.nordicsemi.com/-/media/Images/Products/DevKits/nRF52-Series/nRF52840-Dongle/nRF52840-Dongle-rev2-prod-page.png?h=750&iar=0&mw=350&w=350&hash=994DC726E9F3DBB12056C07F5DC0A802",
+        "pins": [
+            {
+                "pin": 6,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": true
+            },
+            {
+                "pin": 8,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": true
+            },
+            {
+                "pin": 12,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": true
+            }
+        ]
     }
 ]
