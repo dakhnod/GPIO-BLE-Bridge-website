@@ -714,11 +714,7 @@ const module = (function () {
 
             for (var j = 0; j < output_analog_pins.length; j++) {
                 const pin = output_analog_pins[j]
-                var label = '?'
-
-                if (pin.pin != undefined) {
-                    label = pin.pin
-                }
+                const label = pinIndexToLabel(pin.pin)
 
                 var value = ''
                 if (step.output_analog_values[j] != undefined) {
@@ -881,6 +877,13 @@ const module = (function () {
         }
     }
 
+    function pinIndexToLabel(pin) {
+        if(pin == undefined) {
+            return '?'
+        }
+        return `${Math.floor(pin / 32)}.${String(pin % 32).padStart(2, '0')}`
+    }
+
     function display_pin_configuration_menu() {
         const pin_configurations_container = $('#pin-configurations')
 
@@ -913,7 +916,7 @@ const module = (function () {
 
             const parent_html = `
             <div class="pin-configuration-container">
-            <h3>Pin ${pin.pin}</h3>
+            <h3>Pin ${pinIndexToLabel(pin.pin)}</h3>
             </div>
             `
 
@@ -991,10 +994,8 @@ const module = (function () {
         for (var i = 0; i < output_digital_pins.length; i++) {
             const output_pin = output_digital_pins[i]
 
-            var label = '?'
-            if (output_pin.pin != undefined) {
-                label = output_pin.pin
-            }
+            const label = pinIndexToLabel(output_pin.pin)
+
             var background_class = ''
             if (output_pin.is_high) {
                 background_class = 'pin-high'
@@ -1015,12 +1016,9 @@ const module = (function () {
         const container = $('#outputs-analog-container')
         container.empty()
         for (const pin of output_analog_pins) {
-            var label = '?'
+            const label = pinIndexToLabel(pin.pin)
             var value = ''
 
-            if (pin.pin != undefined) {
-                label = pin.pin
-            }
             if (pin.value != undefined) {
                 value = pin.value
             }
@@ -1067,10 +1065,7 @@ const module = (function () {
         for (var i = 0; i < input_pins.length; i++) {
             const input_pin = input_pins[i]
 
-            var label = '?'
-            if (input_pin.pin != undefined) {
-                label = input_pin.pin
-            }
+            const label = pinIndexToLabel(input_pin.pin)
             var background_class = ''
             if (input_pin.is_high) {
                 background_class = 'pin-high'
