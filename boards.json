@@ -274,5 +274,64 @@
                 "invert": true
             }
         ]
+    }, 
+    {
+        "label": "nRF21540 DK",
+        "image_url": "https://docs.zephyrproject.org/latest/_images/nrf5340dk.jpg",
+        "hardware_pin_count": 64,
+        "pins": [
+            {
+                "pin": 28,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": true
+            },
+            {
+                "pin": 29,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": true
+            },
+            {
+                "pin": 30,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": true
+            },
+            {
+                "pin": 31,
+                "function": "output",
+                "function_output": "digital",
+                "default_high": false,
+                "invert": true
+            },
+            {
+                "pin": 8,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            },
+            {
+                "pin": 9,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            },
+            {
+                "pin": 23,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            },
+            {
+                "pin": 24,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            }
+        ]
     }
 ]

@@ -95,7 +95,8 @@ const module = (function () {
             pin_index = pin.pin + 1
             configured_pins.push(pin)
         }
-        for (; pin_index < 32; pin_index++) {
+        const hardwarePinCount = board.hardware_pin_count ?? 32
+        for (; pin_index < hardwarePinCount; pin_index++) {
             configured_pins.push({
                 pin: pin_index,
                 function: 'disabled'
