@@ -281,6 +281,18 @@
         "hardware_pin_count": 64,
         "pins": [
             {
+                "pin": 11,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            },
+            {
+                "pin": 12,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            },
+            {
                 "pin": 13,
                 "function": "output",
                 "function_output": "digital",
@@ -306,18 +318,6 @@
                 "function": "output",
                 "function_output": "digital",
                 "default_high": false,
-                "invert": true
-            },
-            {
-                "pin": 11,
-                "function": "input",
-                "pull": "pullup",
-                "invert": true
-            },
-            {
-                "pin": 12,
-                "function": "input",
-                "pull": "pullup",
                 "invert": true
             },
             {
