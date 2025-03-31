@@ -277,57 +277,57 @@
     }, 
     {
         "label": "nRF21540 DK",
-        "image_url": "https://docs.zephyrproject.org/latest/_images/nrf5340dk.jpg",
+        "image_url": "https://docs.zephyrproject.org/latest/_images/nrf21540dk_nrf52840.jpg",
         "hardware_pin_count": 64,
         "pins": [
             {
-                "pin": 28,
+                "pin": 13,
                 "function": "output",
                 "function_output": "digital",
                 "default_high": false,
                 "invert": true
             },
             {
-                "pin": 29,
+                "pin": 14,
                 "function": "output",
                 "function_output": "digital",
                 "default_high": false,
                 "invert": true
             },
             {
-                "pin": 30,
+                "pin": 15,
                 "function": "output",
                 "function_output": "digital",
                 "default_high": false,
                 "invert": true
             },
             {
-                "pin": 31,
+                "pin": 16,
                 "function": "output",
                 "function_output": "digital",
                 "default_high": false,
                 "invert": true
             },
             {
-                "pin": 8,
+                "pin": 11,
                 "function": "input",
                 "pull": "pullup",
                 "invert": true
             },
             {
-                "pin": 9,
-                "function": "input",
-                "pull": "pullup",
-                "invert": true
-            },
-            {
-                "pin": 23,
+                "pin": 12,
                 "function": "input",
                 "pull": "pullup",
                 "invert": true
             },
             {
                 "pin": 24,
+                "function": "input",
+                "pull": "pullup",
+                "invert": true
+            },
+            {
+                "pin": 25,
                 "function": "input",
                 "pull": "pullup",
                 "invert": true
