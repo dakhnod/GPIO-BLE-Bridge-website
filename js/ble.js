@@ -1390,7 +1390,7 @@ const module = (function () {
             return
         }
 
-	const expected = '0.8.'
+	    const expected = '0.9.'
 
         if (device_firmware_version.startsWith(expected)) {
             return
